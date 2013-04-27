@@ -13,7 +13,29 @@
    }                                          \n';
 
   function start() {
+    var i, j;
     var gl = document.getElementById("c").getContext("experimental-webgl");
+    var atlas = document.getElementById("atlas");
+    var atlasToc = [];
+    for(i = 0; i < 4; ++ i) {
+      for(j = 0; j < 4; ++ j) {
+        atlasToc.push(i);
+        atlasToc.push(j);
+      }
+    }
+
+    var bgPlane = [];
+    for(i = 0; i < 100; ++ i) {
+      bgPlane.push(15);
+    }
+
+    var fgPlane = [];
+    for(i = 0; i < 100, ++ i) {
+      fgPlane.push(11);
+    }
+    for(i = 40; i < 50; ++ i) {
+      fgPlane[i] = 0;
+    }
 
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertexShader, vertexShaderString);
@@ -46,4 +68,7 @@
   }
 </script>
 <body onload="start();">
-<canvas id="c" width="500" height="500"></canvas>
+  <img id="atlas" src="walls.png"></img>
+  <canvas id="c" width="500" height="500"></canvas>
+</body>
+</html>
