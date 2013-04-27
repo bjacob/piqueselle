@@ -23,6 +23,7 @@
      vec2 fragPosInFgPlane = fragPos - fgPlanePos.xy;          \n\
      vec2 tileInFgPlane = floor(fragPosInFgPlane / 16.0);          \n\
      float tocIndexForFgPlane = texture2D(fgPlaneSampler, tileInFgPlane / 10.0).r;          \n\
+     float x = tocIndexForFgPlane == 11.0/256.0 ? 1.0 : 0.0;          \n\
      vec2 atlasCoordForFgPlane = texture2D(atlasTocSampler, vec2(tocIndexForFgPlane, 0)).ra;          \n\
      gl_FragColor = texture2D(atlasSampler, atlasCoordForFgPlane + fragPosInFgPlane / 16.0 - tileInFgPlane);          \n\
    }                                          \n';
@@ -118,9 +119,9 @@
 
     var vertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-    var vertices = [ 0,  0,
-                     0,  1,
-                     1,  0,
+    var vertices = [ -1,  -1,
+                     -1,  1,
+                     1,  -1,
                      1,  1 ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     gl.vertexAttribPointer(vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
