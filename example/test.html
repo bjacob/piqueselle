@@ -22,10 +22,12 @@
      vec2 fragPos = gl_FragCoord.xy + cameraPos.xy;          \n\
      vec2 fragPosInFgPlane = fragPos - fgPlanePos.xy;          \n\
      vec2 tileInFgPlane = floor(fragPosInFgPlane / 16.0);          \n\
-     float tocIndexForFgPlane = texture2D(fgPlaneSampler, tileInFgPlane / 10.0).r;          \n\
-     float x = tocIndexForFgPlane == 11.0/256.0 ? 1.0 : 0.0;          \n\
-     vec2 atlasCoordForFgPlane = texture2D(atlasTocSampler, vec2(tocIndexForFgPlane, 0)).ra;          \n\
-     gl_FragColor = texture2D(atlasSampler, atlasCoordForFgPlane + fragPosInFgPlane / 16.0 - tileInFgPlane);          \n\
+     float tocIndexForFgPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInFgPlane / 10.0).r);          \n\
+     vec2 atlasCoordForFgPlane = 256.0 * texture2D(atlasTocSampler, vec2(tocIndexForFgPlane / 16.0, 0.0)).ra;          \n\
+     gl_FragColor = texture2D(atlasSampler, (atlasCoordForFgPlane + fragPosInFgPlane / 16.0 - tileInFgPlane) / 4.0);          \n\
+     // float x = floor(atlasCoordForFgPlane.x) == 2.0 ? 1.0 : 0.0; \n\
+     // float y = floor(atlasCoordForFgPlane.y) == 3.0 ? 1.0 : 0.0; \n\
+     // gl_FragColor = vec4(x, y, 0, 1); \n\
    }                                          \n';
 
   function start() {
@@ -49,9 +51,11 @@
     for(i = 0; i < 100; ++ i) {
       fgPlane.push(11);
     }
+    /*
     for(i = 40; i < 50; ++ i) {
       fgPlane[i] = 0;
     }
+    */
 
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertexShader, vertexShaderString);
@@ -85,8 +89,9 @@
     gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
                   gl.UNSIGNED_SHORT_4_4_4_4, atlas);
-    gl.uniform1i(atlasTocSamplerUniformLoc, 0);
+    gl.uniform1i(atlasSamplerUniformLoc, 0);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     var atlasTocTexture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE1);
@@ -94,13 +99,15 @@
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, 16, 1, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, new Uint8Array(atlasToc));
     gl.uniform1i(atlasTocSamplerUniformLoc, 1);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     var bgPlaneTexture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, bgPlaneTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 10, 10, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(bgPlane));
-    gl.uniform1i(atlasTocSamplerUniformLoc, 2);
+    gl.uniform1i(bgPlaneSamplerUniformLoc, 2);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
@@ -108,8 +115,9 @@
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_2D, fgPlaneTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 10, 10, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(fgPlane));
-    gl.uniform1i(atlasTocSamplerUniformLoc, 3);
+    gl.uniform1i(fgPlaneSamplerUniformLoc, 3);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
