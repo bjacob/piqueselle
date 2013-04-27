@@ -8,6 +8,13 @@
 
   var fragmentShaderString =
   'precision mediump float;                   \n\
+   uniform sampler2D atlasSampler;
+   uniform sampler2D atlasTocSampler;
+   uniform sampler2D bgPlaneSampler;
+   uniform sampler2D fgPlaneSampler;
+   uniform vec3 bgPlanePos;
+   uniform vec3 fgPlanePos;
+   uniform vec3 cameraPos;
    void main(void) {                          \n\
      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); \n\
    }                                          \n';
@@ -36,6 +43,23 @@
     for(i = 40; i < 50; ++ i) {
       fgPlane[i] = 0;
     }
+
+    var atlasTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA
+                  gl.UNSIGNED_SHORT_4_4_4_4, atlas);
+
+    var atlasTocTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, atlasTocTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, 16, 1, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, new Uint8Array(atlasToc));
+
+    var bgPlaneTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, bgPlaneTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 10, 10, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(bgPlane));
+
+    var fgPlaneTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, fgPlaneTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 10, 10, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(fgPlane));
 
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertexShader, vertexShaderString);
