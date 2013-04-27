@@ -8,15 +8,20 @@
 
   var fragmentShaderString =
   'precision mediump float;                   \n\
-   uniform sampler2D atlasSampler;
-   uniform sampler2D atlasTocSampler;
-   uniform sampler2D bgPlaneSampler;
-   uniform sampler2D fgPlaneSampler;
-   uniform vec3 bgPlanePos;
-   uniform vec3 fgPlanePos;
-   uniform vec3 cameraPos;
+   uniform sampler2D atlasSampler;            \n\
+   uniform sampler2D atlasTocSampler;         \n\
+   uniform sampler2D bgPlaneSampler;          \n\
+   uniform sampler2D fgPlaneSampler;          \n\
+   uniform vec3 bgPlanePos;          \n\
+   uniform vec3 fgPlanePos;          \n\
+   uniform vec3 cameraPos;          \n\
    void main(void) {                          \n\
-     gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); \n\
+     vec2 fragPos = gl_FragCoord + cameraPos;          \n\
+     vec2 fragPosInFgPlane = fragPos - fgPlanePos;          \n\
+     vec2 tileInFgPlane = floor(fragPosInFgPlane / 16.0);          \n\
+     float tocIndexForFgPlane = texture2D(fgPlaneSampler, tileInFgPlane / 10.0).r;          \n\
+     vec2 atlasCoordForFgPlane = texture2D(atlasTocTexture, vec2(tocIndexForFgPlane, 0)).ra;          \n\
+     gl_FragColor = texture2D(atlasSampler, atlasCoordForFgPlane + fragPosInFgPlane / 16.0 - tileInFgPlane);          \n\
    }                                          \n';
 
   function start() {
@@ -44,23 +49,6 @@
       fgPlane[i] = 0;
     }
 
-    var atlasTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA
-                  gl.UNSIGNED_SHORT_4_4_4_4, atlas);
-
-    var atlasTocTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, atlasTocTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, 16, 1, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, new Uint8Array(atlasToc));
-
-    var bgPlaneTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, bgPlaneTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 10, 10, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(bgPlane));
-
-    var fgPlaneTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, fgPlaneTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 10, 10, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(fgPlane));
-
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertexShader, vertexShaderString);
     gl.compileShader(vertexShader);
@@ -78,17 +66,57 @@
     var vertexPositionAttrLoc = gl.getAttribLocation(program, "vertexPosition");
     gl.enableVertexAttribArray(vertexPositionAttrLoc);
 
+    var atlasSamplerUniformLoc = gl.getUniformLocation(program, "atlasSampler");
+    var atlasTocSamplerUniformLoc = gl.getUniformLocation(program, "atlasTocSampler");
+    var bgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "bgPlaneSampler");
+    var fgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "fgPlaneSampler");
+    var bgPlanePosUniformLoc = gl.getUniformLocation(program, "bgPlanePos");
+    var fgPlanePosUniformLoc = gl.getUniformLocation(program, "fgPlanePos");
+    var cameraPosUniformLoc = gl.getUniformLocation(program, "cameraPos");
+
+    var atlasTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA
+                  gl.UNSIGNED_SHORT_4_4_4_4, atlas);
+    gl.uniform1i(atlasTocSamplerUniformLoc, 0);
+
+    var atlasTocTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, atlasTocTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, 16, 1, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, new Uint8Array(atlasToc));
+    gl.uniform1i(atlasTocSamplerUniformLoc, 1);
+
+    var bgPlaneTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, bgPlaneTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 10, 10, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(bgPlane));
+    gl.uniform1i(atlasTocSamplerUniformLoc, 2);
+
+    var fgPlaneTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, fgPlaneTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 10, 10, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, new Uint8Array(fgPlane));
+    gl.uniform1i(atlasTocSamplerUniformLoc, 3);
+
+    gl.uniform3f(bgPlanePosUniformLoc, 0, 0, 0);
+    gl.uniform3f(fgPlanePosUniformLoc, 0, 0, 0);
+    gl.uniform3f(cameraPosUniformLoc, 0, 0, 0);
+
     var vertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-    var vertices = [ 0.0,  1.0,
-                    -1.0,  -0.5,
-                     1.0,  -0.5 ];
+    var vertices = [ 0,  0,
+                     0,  1,
+                     1,  0,
+                     1,  1 ];
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     gl.vertexAttribPointer(vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
 
+    gl.disable(gl.CULL_FACE);
+
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
 </script>
 <body onload="start();">
