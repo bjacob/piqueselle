@@ -204,6 +204,9 @@
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.useProgram(program);
 
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
+
       angle += 0.01;
       gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 20 * Math.sin(angle), 0);
 
