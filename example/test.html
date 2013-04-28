@@ -209,7 +209,7 @@
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
 
-      angle += 0.01;
+      angle = new Date().getTime() / 2000.0;
       gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 20 * Math.sin(angle), 0);
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
