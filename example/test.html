@@ -18,17 +18,38 @@
    uniform vec3 bgPlanePos;          \n\
    uniform vec3 fgPlanePos;          \n\
    uniform vec3 cameraPos;          \n\
+   void blend(vec4 src, inout vec4 dst) { \n\
+     // http://developer.download.nvidia.com/SDK/10/opengl/src/dual_depth_peeling/doc/DualDepthPeeling.pdf \n\
+     dst.rgb = (dst.a * src.a) * src.rgb + dst.rgb; \n\
+     dst.a = (1.0 - src.a) * dst.a; \n\
+   } \n\
    void main(void) {                          \n\
      vec2 fragPos = gl_FragCoord.xy + cameraPos.xy;          \n\
-     vec2 fragPosInFgPlane = fragPos - fgPlanePos.xy;          \n\
-     vec2 tileInFgPlane = floor(fragPosInFgPlane / 16.0);          \n\
-     float tocIndexForFgPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInFgPlane / 32.0).r);          \n\
-     vec2 atlasCoordForFgPlane = 256.0 * texture2D(atlasTocSampler, vec2(tocIndexForFgPlane / 16.0, 0.0)).ra;          \n\
-     vec2 texCoordInTile = fragPosInFgPlane / 16.0 - tileInFgPlane; \n\
-     gl_FragColor = texture2D(atlasSampler, (atlasCoordForFgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
-     //float x = floor(tileInFgPlane.x) == 12.0 ? 1.0 : 0.0; \n\
-     //float y = floor(tileInFgPlane.y) == 9.0 ? 1.0 : 0.0; \n\
-     //gl_FragColor = vec4(tocIndexForFgPlane / 16.0, 0, 0, 1); \n\
+     vec4 resultColor = vec4(0, 0, 0, 1.0);\n\
+     vec4 color; \n\
+     \n\
+     { \n\
+      vec2 fragPosInFgPlane = fragPos - fgPlanePos.xy;          \n\
+      vec2 tileInFgPlane = floor(fragPosInFgPlane / 16.0);          \n\
+      float tocIndexForFgPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInFgPlane / 32.0).r);          \n\
+      vec2 atlasCoordForFgPlane = 256.0 * texture2D(atlasTocSampler, vec2(tocIndexForFgPlane / 16.0, 0.0)).ra;          \n\
+      vec2 texCoordInTile = fragPosInFgPlane / 16.0 - tileInFgPlane; \n\
+      color = texture2D(atlasSampler, (atlasCoordForFgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
+      blend(color, resultColor); \n\
+     } \n\
+     \n\
+     { \n\
+      vec2 fragPosInBgPlane = fragPos - bgPlanePos.xy;          \n\
+      vec2 tileInBgPlane = floor(fragPosInBgPlane / 16.0);          \n\
+      float tocIndexForBgPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInBgPlane / 32.0).r);          \n\
+      vec2 atlasCoordForBgPlane = 256.0 * texture2D(atlasTocSampler, vec2(tocIndexForBgPlane / 16.0, 0.0)).ra;          \n\
+      vec2 texCoordInTile = fragPosInBgPlane / 16.0 - tileInBgPlane; \n\
+      color = texture2D(atlasSampler, (atlasCoordForBgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
+      blend(color, resultColor); \n\
+     } \n\
+     \n\
+     gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+     \n\
    }                                          \n';
 
   function start() {
@@ -107,8 +128,6 @@
     gl.uniform1i(bgPlaneSamplerUniformLoc, 2);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     var fgPlaneTexture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE3);
@@ -117,8 +136,6 @@
     gl.uniform1i(fgPlaneSamplerUniformLoc, 3);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     gl.uniform3f(bgPlanePosUniformLoc, 0, 0, 0);
     gl.uniform3f(fgPlanePosUniformLoc, 0, 0, 0);
