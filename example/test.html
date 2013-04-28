@@ -24,25 +24,26 @@
      dst.a = (1.0 - src.a) * dst.a; \n\
    } \n\
    void main(void) {                          \n\
-     vec2 fragPos = gl_FragCoord.xy + cameraPos.xy;          \n\
      vec4 resultColor = vec4(0, 0, 0, 1.0);\n\
      vec4 color; \n\
      \n\
      { \n\
+      vec2 fragPos = gl_FragCoord.xy + cameraPos.xy / (cameraPos.z - fgPlanePos.z);          \n\
       vec2 fragPosInFgPlane = fragPos - fgPlanePos.xy;          \n\
       vec2 tileInFgPlane = floor(fragPosInFgPlane / 16.0);          \n\
       float tocIndexForFgPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInFgPlane / 32.0).r);          \n\
-      vec2 atlasCoordForFgPlane = 256.0 * texture2D(atlasTocSampler, vec2(tocIndexForFgPlane / 16.0, 0.0)).ra;          \n\
+      vec2 atlasCoordForFgPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForFgPlane / 16.0, 0.0)).ra);          \n\
       vec2 texCoordInTile = fragPosInFgPlane / 16.0 - tileInFgPlane; \n\
       color = texture2D(atlasSampler, (atlasCoordForFgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
       blend(color, resultColor); \n\
      } \n\
      \n\
      { \n\
+      vec2 fragPos = gl_FragCoord.xy + cameraPos.xy / (cameraPos.z - bgPlanePos.z);          \n\
       vec2 fragPosInBgPlane = fragPos - bgPlanePos.xy;          \n\
       vec2 tileInBgPlane = floor(fragPosInBgPlane / 16.0);          \n\
       float tocIndexForBgPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInBgPlane / 32.0).r);          \n\
-      vec2 atlasCoordForBgPlane = 256.0 * texture2D(atlasTocSampler, vec2(tocIndexForBgPlane / 16.0, 0.0)).ra;          \n\
+      vec2 atlasCoordForBgPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForBgPlane / 16.0, 0.0)).ra);          \n\
       vec2 texCoordInTile = fragPosInBgPlane / 16.0 - tileInBgPlane; \n\
       color = texture2D(atlasSampler, (atlasCoordForBgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
       blend(color, resultColor); \n\
@@ -137,8 +138,8 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-    gl.uniform3f(bgPlanePosUniformLoc, 0, 0, 0);
-    gl.uniform3f(fgPlanePosUniformLoc, 0, 0, 0);
+    gl.uniform3f(bgPlanePosUniformLoc, 0, 0, -2);
+    gl.uniform3f(fgPlanePosUniformLoc, 0, 0, -1);
     gl.uniform3f(cameraPosUniformLoc, 0, 0, 0);
 
     var vertexPositionBuffer = gl.createBuffer();
@@ -152,13 +153,21 @@
 
     gl.disable(gl.CULL_FACE);
 
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    var angle = 0;
+
+    function render() {
+      angle += 0.01;
+      gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 0, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      window.requestAnimationFrame(render);
+    }
+
+    window.requestAnimationFrame(render);
   }
 </script>
 <body onload="start();">
   <img id="atlas" src="walls.png" style="display: none"></img>
-  <canvas id="c" width="400" height="400" style="width: 400px; height: 400px"></canvas>
+  <canvas id="c" width="128" height="128" style="width: 512px; height: 512px"></canvas>
 </body>
 </html>
