@@ -35,6 +35,10 @@
       vec2 atlasCoordForFgPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForFgPlane / 16.0, 0.0)).ra);          \n\
       vec2 texCoordInTile = fragPosInFgPlane / 16.0 - tileInFgPlane; \n\
       color = texture2D(atlasSampler, (atlasCoordForFgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
+      if (color.a == 1.0) { \n\
+        gl_FragColor = color; \n\
+        return; \n\
+      } \n\
       blend(color, resultColor); \n\
      } \n\
      \n\
@@ -46,6 +50,10 @@
       vec2 atlasCoordForBgPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForBgPlane / 16.0, 0.0)).ra);          \n\
       vec2 texCoordInTile = fragPosInBgPlane / 16.0 - tileInBgPlane; \n\
       color = texture2D(atlasSampler, (atlasCoordForBgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
+      if (color.a == 1.0) { \n\
+        gl_FragColor = color; \n\
+        return; \n\
+      } \n\
       blend(color, resultColor); \n\
      } \n\
      \n\
