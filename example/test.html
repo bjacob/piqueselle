@@ -165,7 +165,7 @@
 
     function render() {
       angle += 0.01;
-      gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 0, 0);
+      gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 20 * Math.sin(angle), 0);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
       window.requestAnimationFrame(render);
