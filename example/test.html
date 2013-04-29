@@ -37,63 +37,6 @@
      \n'
   );
 
-/*
-  var shader =
-  'precision mediump float; \n\
-   \n\
-   uniform vec3 cameraPos; \n\
-   void blend(vec4 src, inout vec4 dst) { \n\
-     // http://developer.download.nvidia.com/SDK/10/opengl/src/dual_depth_peeling/doc/DualDepthPeeling.pdf \n\
-     dst.rgb = (dst.a * src.a) * src.rgb + dst.rgb; \n\
-     dst.a = (1.0 - src.a) * dst.a; \n\
-   } \n\
-   uniform sampler2D atlasSampler;            \n\
-   uniform sampler2D atlasTocSampler;         \n\
-   uniform sampler2D bgPlaneSampler;          \n\
-   uniform vec3 bgPlanePos;          \n\
-   uniform sampler2D fgPlaneSampler;          \n\
-   uniform vec3 fgPlanePos;          \n\
-   void main(void) {                          \n\
-     vec4 resultColor = vec4(0, 0, 0, 1.0);\n\
-     vec4 color; \n\
-     \n\
-     { \n\
-      vec3 planePos = fgPlanePos; \n\
-      vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - planePos.z);          \n\
-      vec2 fragPosInPlane = fragPos - planePos.xy;          \n\
-      vec2 tileInPlane = floor(fragPosInPlane / 16.0);          \n\
-      float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / 32.0).r);          \n\
-      vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra);          \n\
-      vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
-      color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
-      blend(color, resultColor); \n\
-      if (color.a == 1.0) { \n\
-        gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
-        return; \n\
-      } \n\
-     } \n\
-     \n\
-     { \n\
-      vec3 planePos = bgPlanePos; \n\
-      vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - planePos.z);          \n\
-      vec2 fragPosInPlane = fragPos - planePos.xy;          \n\
-      vec2 tileInPlane = floor(fragPosInPlane / 16.0);          \n\
-      float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / 32.0).r);          \n\
-      vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra);          \n\
-      vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
-      color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
-      blend(color, resultColor); \n\
-      if (color.a == 1.0) { \n\
-        gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
-        return; \n\
-      } \n\
-     } \n\
-     \n\
-     gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
-     \n\
-   }                                          \n';
-*/
-
   function start() {
     var i, j;
 
@@ -216,6 +159,7 @@
 
     fragmentShaderString += fragmentShaderPreambleParts.join('');
     fragmentShaderString += fragmentShaderMainParts.join('');
+    console.log('fragment shader source:\n' + fragmentShaderString);
 
     // compile and link shader program
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
