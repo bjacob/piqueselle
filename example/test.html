@@ -67,7 +67,8 @@
     var canvas = document.getElementById("c");
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
-    var gl = canvas.getContext("experimental-webgl");
+    var glOptions = {antialias:false, depth:false, alpha:false};
+    var gl = canvas.getContext("experimental-webgl", glOptions);
 
     function resizeCanvas() {
       if (canvas.width != canvas.clientWidth ||
@@ -200,9 +201,6 @@
         frames_since_last_dump = 0;
         timestamp_of_last_dump = timestamp;
       }
-
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
 
       angle = timestamp / 2000.0;
       gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 20 * Math.sin(angle), 0);
