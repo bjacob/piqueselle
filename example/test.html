@@ -64,7 +64,22 @@
   function start() {
     var i, j;
 
-    var gl = document.getElementById("c").getContext("experimental-webgl");
+    var canvas = document.getElementById("c");
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    var gl = canvas.getContext("experimental-webgl");
+
+    function resizeCanvas() {
+      if (canvas.width != canvas.clientWidth ||
+          canvas.height != canvas.clientHeight)
+      {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    window.addEventListener('resize', resizeCanvas);
 
     var atlas = document.getElementById("atlas");
     var atlasToc = [];
@@ -168,6 +183,7 @@
     var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame
 
     function render() {
+    
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
 
@@ -184,6 +200,6 @@
 </script>
 <body onload="start();">
   <img id="atlas" src="walls.png" style="display: none"></img>
-  <canvas id="c" width="512" height="512"></canvas>
+  <canvas id="c" style="width:100%; height:100%"></canvas>
 </body>
 </html>
