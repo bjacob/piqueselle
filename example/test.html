@@ -5,20 +5,9 @@
 <script>
   var vertexShaderString =
   'attribute vec2 vertexPosition;                  \n\
-   varying vec2 varyingTexCoord; \n\
    void main(void) {                               \n\
-     varyingTexCoord = 0.5 * (vertexPosition + 1.0); \n\
      gl_Position = vec4(vertexPosition, 0.0, 1.0); \n\
    }                                               \n';
-
-  var scalingFragmentShaderString =
-  'precision mediump float; \n\
-   varying vec2 varyingTexCoord; \n\
-   uniform sampler2D framebufferSampler; \n\
-   void main() { \n\
-    gl_FragColor = texture2D(framebufferSampler, varyingTexCoord); \n\
-   } \n\
-  '
 
   var fragmentShaderString =
   'precision mediump float;                   \n\
@@ -39,7 +28,7 @@
      vec4 color; \n\
      \n\
      { \n\
-      vec2 fragPos = gl_FragCoord.xy + cameraPos.xy / (cameraPos.z - fgPlanePos.z);          \n\
+      vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - fgPlanePos.z);          \n\
       vec2 fragPosInFgPlane = fragPos - fgPlanePos.xy;          \n\
       vec2 tileInFgPlane = floor(fragPosInFgPlane / 16.0);          \n\
       float tocIndexForFgPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInFgPlane / 32.0).r);          \n\
@@ -54,7 +43,7 @@
      } \n\
      \n\
      { \n\
-      vec2 fragPos = gl_FragCoord.xy + cameraPos.xy / (cameraPos.z - bgPlanePos.z);          \n\
+      vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - bgPlanePos.z);          \n\
       vec2 fragPosInBgPlane = fragPos - bgPlanePos.xy;          \n\
       vec2 tileInBgPlane = floor(fragPosInBgPlane / 16.0);          \n\
       float tocIndexForBgPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInBgPlane / 32.0).r);          \n\
@@ -76,15 +65,6 @@
     var i, j;
 
     var gl = document.getElementById("c").getContext("experimental-webgl");
-    var framebufferTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, framebufferTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, 128, 128, 0, gl.RGB, gl.UNSIGNED_SHORT_5_6_5, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    var framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, framebufferTexture, 0);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
     var atlas = document.getElementById("atlas");
     var atlasToc = [];
@@ -116,19 +96,10 @@
     gl.shaderSource(fragmentShader, fragmentShaderString);
     gl.compileShader(fragmentShader);
 
-    var scalingFragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(scalingFragmentShader, scalingFragmentShaderString);
-    gl.compileShader(scalingFragmentShader);
-
     var program = gl.createProgram();
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
-
-    var scalingProgram = gl.createProgram();
-    gl.attachShader(scalingProgram, vertexShader);
-    gl.attachShader(scalingProgram, scalingFragmentShader);
-    gl.linkProgram(scalingProgram);
 
     var vertexPositionAttrLoc = gl.getAttribLocation(program, "vertexPosition");
     gl.enableVertexAttribArray(vertexPositionAttrLoc);
@@ -140,10 +111,6 @@
     var bgPlanePosUniformLoc = gl.getUniformLocation(program, "bgPlanePos");
     var fgPlanePosUniformLoc = gl.getUniformLocation(program, "fgPlanePos");
     var cameraPosUniformLoc = gl.getUniformLocation(program, "cameraPos");
-    var framebufferSamplerLoc = gl.getUniformLocation(scalingProgram, "framebufferSampler");
-
-    gl.useProgram(scalingProgram);
-    gl.uniform1i(framebufferSamplerLoc, 0);
 
     gl.useProgram(program);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
@@ -201,24 +168,12 @@
     var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame
 
     function render() {
-      // Render frame to framebuffer
-      gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.useProgram(program);
-
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
 
       angle = new Date().getTime() / 2000.0;
       gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 20 * Math.sin(angle), 0);
 
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-      // Render framebuffer to default framebuffer
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, framebufferTexture);
-      gl.useProgram(scalingProgram);
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
       requestAnimationFrame(render);
