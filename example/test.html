@@ -180,7 +180,11 @@
 
     var angle = 0;
 
-    var requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame
+    var requestAnimationFrame = window.requestAnimationFrame
+                             || window.mozRequestAnimationFrame
+                             || window.webkitRequestAnimationFrame
+                             || window.msRequestAnimationFrame
+                             || window.oRequestAnimationFrame;
 
     function render() {
     
