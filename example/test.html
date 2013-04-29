@@ -28,33 +28,35 @@
      vec4 color; \n\
      \n\
      { \n\
-      vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - fgPlanePos.z);          \n\
-      vec2 fragPosInFgPlane = fragPos - fgPlanePos.xy;          \n\
-      vec2 tileInFgPlane = floor(fragPosInFgPlane / 16.0);          \n\
-      float tocIndexForFgPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInFgPlane / 32.0).r);          \n\
-      vec2 atlasCoordForFgPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForFgPlane / 16.0, 0.0)).ra);          \n\
-      vec2 texCoordInTile = fragPosInFgPlane / 16.0 - tileInFgPlane; \n\
-      color = texture2D(atlasSampler, (atlasCoordForFgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
+      vec3 planePos = fgPlanePos; \n\
+      vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - planePos.z);          \n\
+      vec2 fragPosInPlane = fragPos - planePos.xy;          \n\
+      vec2 tileInPlane = floor(fragPosInPlane / 16.0);          \n\
+      float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / 32.0).r);          \n\
+      vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra);          \n\
+      vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
+      color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
+      blend(color, resultColor); \n\
       if (color.a == 1.0) { \n\
-        gl_FragColor = color; \n\
+        gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
         return; \n\
       } \n\
-      blend(color, resultColor); \n\
      } \n\
      \n\
      { \n\
-      vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - bgPlanePos.z);          \n\
-      vec2 fragPosInBgPlane = fragPos - bgPlanePos.xy;          \n\
-      vec2 tileInBgPlane = floor(fragPosInBgPlane / 16.0);          \n\
-      float tocIndexForBgPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInBgPlane / 32.0).r);          \n\
-      vec2 atlasCoordForBgPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForBgPlane / 16.0, 0.0)).ra);          \n\
-      vec2 texCoordInTile = fragPosInBgPlane / 16.0 - tileInBgPlane; \n\
-      color = texture2D(atlasSampler, (atlasCoordForBgPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
+      vec3 planePos = bgPlanePos; \n\
+      vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - planePos.z);          \n\
+      vec2 fragPosInPlane = fragPos - planePos.xy;          \n\
+      vec2 tileInPlane = floor(fragPosInPlane / 16.0);          \n\
+      float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / 32.0).r);          \n\
+      vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra);          \n\
+      vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
+      color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0);          \n\
+      blend(color, resultColor); \n\
       if (color.a == 1.0) { \n\
-        gl_FragColor = color; \n\
+        gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
         return; \n\
       } \n\
-      blend(color, resultColor); \n\
      } \n\
      \n\
      gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
@@ -214,7 +216,7 @@
   }
 </script>
 <body onload="start();">
-  <img id="atlas" src="walls.png" style="display: none"></img>
+  <img id="atlas" src="walls1.png" style="display: none"></img>
   <canvas id="c" style="width:100%; height:100%"></canvas>
 </body>
 </html>
