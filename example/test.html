@@ -3,6 +3,13 @@
   <meta charset="utf-8" />
 </head>
 <script>
+  var requestAnimationFrame = window.requestAnimationFrame
+                           || window.mozRequestAnimationFrame
+                           || window.webkitRequestAnimationFrame
+                           || window.msRequestAnimationFrame
+                           || window.oRequestAnimationFrame;
+</script>
+<script>
   var vertexShaderString =
   'attribute vec2 vertexPosition;                  \n\
    void main(void) {                               \n\
@@ -182,12 +189,6 @@
     gl.disable(gl.CULL_FACE);
 
     var angle = 0;
-
-    var requestAnimationFrame = window.requestAnimationFrame
-                             || window.mozRequestAnimationFrame
-                             || window.webkitRequestAnimationFrame
-                             || window.msRequestAnimationFrame
-                             || window.oRequestAnimationFrame;
 
     var timestamp = new Date().getTime();
     var timestamp_of_last_dump = timestamp;
