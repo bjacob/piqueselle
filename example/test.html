@@ -11,25 +11,48 @@
 </script>
 <script>
   var vertexShaderString =
-  'attribute vec2 vertexPosition;                  \n\
-   void main(void) {                               \n\
+  'attribute vec2 vertexPosition; \n\
+   void main(void) { \n\
      gl_Position = vec4(vertexPosition, 0.0, 1.0); \n\
-   }                                               \n';
+   } \n';
 
-  var fragmentShaderString =
-  'precision mediump float;                   \n\
-   uniform sampler2D atlasSampler;            \n\
-   uniform sampler2D atlasTocSampler;         \n\
-   uniform sampler2D bgPlaneSampler;          \n\
-   uniform sampler2D fgPlaneSampler;          \n\
-   uniform vec3 bgPlanePos;          \n\
-   uniform vec3 fgPlanePos;          \n\
-   uniform vec3 cameraPos;          \n\
+  var fragmentShaderString = '';
+  var fragmentShaderPreambleParts = [];
+  var fragmentShaderMainParts = [];
+
+  fragmentShaderPreambleParts.push(
+    'precision mediump float; \n\
+     void blend(vec4 src, inout vec4 dst) { \n\
+       // http://developer.download.nvidia.com/SDK/10/opengl/src/dual_depth_peeling/doc/DualDepthPeeling.pdf \n\
+       dst.rgb = (dst.a * src.a) * src.rgb + dst.rgb; \n\
+       dst.a = (1.0 - src.a) * dst.a; \n\
+     } \n\
+     uniform vec3 cameraPos; \n\
+     \n'
+  );
+
+  fragmentShaderMainParts.push(
+    'vec4 resultColor = vec4(0, 0, 0, 1.0);\n\
+     vec4 color; \n\
+     \n'
+  );
+
+/*
+  var shader =
+  'precision mediump float; \n\
+   \n\
+   uniform vec3 cameraPos; \n\
    void blend(vec4 src, inout vec4 dst) { \n\
      // http://developer.download.nvidia.com/SDK/10/opengl/src/dual_depth_peeling/doc/DualDepthPeeling.pdf \n\
      dst.rgb = (dst.a * src.a) * src.rgb + dst.rgb; \n\
      dst.a = (1.0 - src.a) * dst.a; \n\
    } \n\
+   uniform sampler2D atlasSampler;            \n\
+   uniform sampler2D atlasTocSampler;         \n\
+   uniform sampler2D bgPlaneSampler;          \n\
+   uniform vec3 bgPlanePos;          \n\
+   uniform sampler2D fgPlaneSampler;          \n\
+   uniform vec3 fgPlanePos;          \n\
    void main(void) {                          \n\
      vec4 resultColor = vec4(0, 0, 0, 1.0);\n\
      vec4 color; \n\
@@ -69,6 +92,7 @@
      gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
      \n\
    }                                          \n';
+*/
 
   function start() {
     var i, j;
@@ -91,6 +115,7 @@
 
     window.addEventListener('resize', resizeCanvas);
 
+    // texture atlas and toc
     var atlas = document.getElementById("atlas");
     var atlasToc = [];
     for(i = 0; i < 4; ++ i) {
@@ -100,11 +125,13 @@
       }
     }
 
-    var bgPlane = [];
-    for(i = 0; i < 32*32; ++ i) {
-      bgPlane.push(15);
-    }
+    fragmentShaderPreambleParts.push(
+      'uniform sampler2D atlasSampler; \n\
+       uniform sampler2D atlasTocSampler; \n\
+      '
+    );
 
+    // fg plane
     var fgPlane = [];
     for(i = 0; i < 32*32; ++ i) {
       fgPlane.push(11);
@@ -113,6 +140,81 @@
       fgPlane[i] = 0;
     }
 
+    fragmentShaderPreambleParts.push(
+      'uniform sampler2D fgPlaneSampler; \n\
+       uniform vec3 fgPlanePos; \n\
+      '
+    );
+
+    fragmentShaderMainParts.push(
+      '{ \n\
+         vec3 planePos = fgPlanePos; \n\
+         vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - planePos.z); \n\
+         vec2 fragPosInPlane = fragPos - planePos.xy; \n\
+         vec2 tileInPlane = floor(fragPosInPlane / 16.0); \n\
+         float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / 32.0).r); \n\
+         vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
+         vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
+         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0); \n\
+         blend(color, resultColor); \n\
+         if (color.a == 1.0) { \n\
+           gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+           return; \n\
+         } \n\
+       } \n\
+       \n'
+    );
+
+    // bg plane
+    var bgPlane = [];
+    for(i = 0; i < 32*32; ++ i) {
+      bgPlane.push(15);
+    }
+
+    fragmentShaderPreambleParts.push(
+      'uniform sampler2D bgPlaneSampler; \n\
+       uniform vec3 bgPlanePos; \n\
+      '
+    );
+
+    fragmentShaderMainParts.push(
+      '{ \n\
+         vec3 planePos = bgPlanePos; \n\
+         vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - planePos.z); \n\
+         vec2 fragPosInPlane = fragPos - planePos.xy; \n\
+         vec2 tileInPlane = floor(fragPosInPlane / 16.0); \n\
+         float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / 32.0).r); \n\
+         vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
+         vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
+         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0); \n\
+         blend(color, resultColor); \n\
+         if (color.a == 1.0) { \n\
+           gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+           return; \n\
+         } \n\
+       } \n\
+       \n'
+    );
+
+    fragmentShaderMainParts.push(
+      'gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+      \n'
+    );
+
+    fragmentShaderMainParts.unshift(
+      'void main(void) { \n\
+      \n'
+    );
+
+    fragmentShaderMainParts.push(
+      '} /* main */\n\
+      \n'
+    );
+
+    fragmentShaderString += fragmentShaderPreambleParts.join('');
+    fragmentShaderString += fragmentShaderMainParts.join('');
+console.info(fragmentShaderString);
+    // compile and link shader program
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertexShader, vertexShaderString);
     gl.compileShader(vertexShader);
@@ -131,10 +233,13 @@
 
     var atlasSamplerUniformLoc = gl.getUniformLocation(program, "atlasSampler");
     var atlasTocSamplerUniformLoc = gl.getUniformLocation(program, "atlasTocSampler");
+
     var bgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "bgPlaneSampler");
-    var fgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "fgPlaneSampler");
     var bgPlanePosUniformLoc = gl.getUniformLocation(program, "bgPlanePos");
+
+    var fgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "fgPlaneSampler");
     var fgPlanePosUniformLoc = gl.getUniformLocation(program, "fgPlanePos");
+
     var cameraPosUniformLoc = gl.getUniformLocation(program, "cameraPos");
 
     gl.useProgram(program);
@@ -200,7 +305,7 @@
       frames_since_last_dump++;
 
       if (timestamp - timestamp_of_last_dump > 1000) {
-        console.log("" + frames_since_last_dump + " frames per second");
+        // console.log("" + frames_since_last_dump + " frames per second");
         frames_since_last_dump = 0;
         timestamp_of_last_dump = timestamp;
       }
