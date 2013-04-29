@@ -186,12 +186,25 @@
                              || window.msRequestAnimationFrame
                              || window.oRequestAnimationFrame;
 
+    var timestamp = new Date().getTime();
+    var timestamp_of_last_dump = timestamp;
+    var frames_since_last_dump = 0;
+
     function render() {
-    
+
+      timestamp = new Date().getTime();
+      frames_since_last_dump++;
+
+      if (timestamp - timestamp_of_last_dump > 1000) {
+        console.log("" + frames_since_last_dump + " frames per second");
+        frames_since_last_dump = 0;
+        timestamp_of_last_dump = timestamp;
+      }
+
       gl.activeTexture(gl.TEXTURE0);
       gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
 
-      angle = new Date().getTime() / 2000.0;
+      angle = timestamp / 2000.0;
       gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 20 * Math.sin(angle), 0);
 
       gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
