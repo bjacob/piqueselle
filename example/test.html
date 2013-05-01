@@ -88,13 +88,14 @@
     fragmentShaderPreambleParts.push(
       'uniform sampler2D fgPlaneSampler; \n\
        uniform vec3 fgPlanePos; \n\
+       uniform float zoom;\n\
       \n'
     );
 
     fragmentShaderMainParts.push(
       '{ \n\
          vec3 planePos = fgPlanePos; \n\
-         vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - planePos.z); \n\
+         vec2 fragPos = gl_FragCoord.xy / zoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
          vec2 fragPosInPlane = fragPos - planePos.xy; \n\
          vec2 tileInPlane = floor(fragPosInPlane / 16.0); \n\
          float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / 32.0).r); \n\
@@ -126,7 +127,7 @@
     fragmentShaderMainParts.push(
       '{ \n\
          vec3 planePos = bgPlanePos; \n\
-         vec2 fragPos = gl_FragCoord.xy / 4.0 + cameraPos.xy / (cameraPos.z - planePos.z); \n\
+         vec2 fragPos = gl_FragCoord.xy / zoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
          vec2 fragPosInPlane = fragPos - planePos.xy; \n\
          vec2 tileInPlane = floor(fragPosInPlane / 16.0); \n\
          float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / 32.0).r); \n\
@@ -189,6 +190,8 @@
     var fgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "fgPlaneSampler");
     var fgPlanePosUniformLoc = gl.getUniformLocation(program, "fgPlanePos");
 
+    var zoomUniformLoc = gl.getUniformLocation(program, "zoom");
+
     gl.useProgram(program);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
 
@@ -229,6 +232,7 @@
     gl.uniform3f(bgPlanePosUniformLoc, 0, 0, -2);
     gl.uniform3f(fgPlanePosUniformLoc, 0, 0, -1);
     gl.uniform3f(cameraPosUniformLoc, 0, 0, 0);
+    gl.uniform1f(zoomUniformLoc, 4);
 
     var vertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
