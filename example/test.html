@@ -223,7 +223,7 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     var atlasTocTexture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE1);
+    gl.activeTexture(gl.TEXTURE0 + 1);
     gl.bindTexture(gl.TEXTURE_2D, atlasTocTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, atlasTocSize, 1, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, atlasToc);
     gl.uniform1i(atlasTocSamplerUniformLoc, 1);
@@ -231,7 +231,7 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     var bgPlaneTexture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE2);
+    gl.activeTexture(gl.TEXTURE0 + 2);
     gl.bindTexture(gl.TEXTURE_2D, bgPlaneTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, bgPlaneWidth, bgPlaneHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, bgPlane);
     gl.uniform1i(bgPlaneSamplerUniformLoc, 2);
@@ -239,7 +239,7 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
     var fgPlaneTexture = gl.createTexture();
-    gl.activeTexture(gl.TEXTURE3);
+    gl.activeTexture(gl.TEXTURE0 + 3);
     gl.bindTexture(gl.TEXTURE_2D, fgPlaneTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, fgPlaneWidth, fgPlaneHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, fgPlane);
     gl.uniform1i(fgPlaneSamplerUniformLoc, 3);
