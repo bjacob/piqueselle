@@ -79,16 +79,6 @@
       \n'
     );
 
-    // fg plane
-    var fgPlaneData = [];
-    for(i = 0; i < 32*32; ++ i) {
-      fgPlaneData.push(11);
-    }
-    for(i = 3*32; i < 4*32; ++ i) {
-      fgPlaneData[i] = 0;
-    }
-    var fgPlane = new Uint8Array(fgPlaneData);
-
     var tileWidth = atlasTextureWidth / atlasWidth;
     var tileHeight = atlasTextureHeight / atlasHeight;
 
@@ -100,6 +90,16 @@
        const vec2 inverseTileSize = vec2(' + 1/tileWidth + ', ' + 1/tileHeight + '); \
       \n'
     );
+
+    // fg plane
+    var fgPlaneData = [];
+    for(i = 0; i < 32*32; ++ i) {
+      fgPlaneData.push(11);
+    }
+    for(i = 3*32; i < 4*32; ++ i) {
+      fgPlaneData[i] = 0;
+    }
+    var fgPlane = new Uint8Array(fgPlaneData);
 
     fragmentShaderMainParts.push(
       '{ \n\
