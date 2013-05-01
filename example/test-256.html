@@ -108,6 +108,8 @@
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / atlasTocSize, 0.0)).ra); \n\
          vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
+         gl_FragColor = vec4(color.rgb, 1.0); \n\
+         return; \n\
          /*blend(color, resultColor); \n\
          if (color.a == 1.0)*/ { \n\
            gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
@@ -144,10 +146,10 @@
          vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
          /*blend(color, resultColor); \n\
-         if (color.a == 1.0)*/ { \n\
+         if (color.a == 1.0) { \n\
            gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
            return; \n\
-         } \n\
+         }*/ \n\
        } \n\
        \n'
     );
