@@ -191,9 +191,12 @@
     var program = gl.createProgram();
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
+
+    var vertexPositionAttrLoc = 0;
+    gl.bindAttribLocation(program, vertexPositionAttrLoc, "vertexPosition");
+
     gl.linkProgram(program);
 
-    var vertexPositionAttrLoc = gl.getAttribLocation(program, "vertexPosition");
     gl.enableVertexAttribArray(vertexPositionAttrLoc);
 
     var cameraPosUniformLoc = gl.getUniformLocation(program, "cameraPos");
