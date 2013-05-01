@@ -59,9 +59,11 @@
     window.addEventListener('resize', resizeCanvas);
 
     // texture atlas and toc
-    var atlasWidth = 4;
+    var atlasImage = document.getElementById("atlas");
+    var atlasTextureWidth = atlasImage.width;
+    var atlasTextureHeight = atlasImage.height;
+    var atlasWidth = 4; // expressed in tiles
     var atlasHeight = 4;
-    var atlas = document.getElementById("atlas");
     var atlasTocData = [];
     for(i = 0; i < atlasHeight; ++ i) {
       for(j = 0; j < atlasWidth; ++ j) {
@@ -87,11 +89,15 @@
     }
     var fgPlane = new Uint8Array(fgPlaneData);
 
+    var tileWidth = atlasTextureWidth / atlasWidth;
+    var tileHeight = atlasTextureHeight / atlasHeight;
+
     fragmentShaderPreambleParts.push(
       'uniform sampler2D fgPlaneSampler; \n\
        uniform vec3 fgPlanePos; \n\
        uniform float zoom;\n\
        const vec2 atlasSize = vec2(' + atlasWidth + ', ' + atlasHeight + '); \n\
+       const vec2 tileSize = vec2(' + tileWidth + ', ' + tileHeight + '); \
       \n'
     );
 
@@ -100,10 +106,10 @@
          vec3 planePos = fgPlanePos; \n\
          vec2 fragPos = gl_FragCoord.xy / zoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
          vec2 fragPosInPlane = fragPos - planePos.xy; \n\
-         vec2 tileInPlane = floor(fragPosInPlane / 16.0); \n\
+         vec2 tileInPlane = floor(fragPosInPlane / tileSize); \n\
          float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / 32.0).r); \n\
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
-         vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
+         vec2 texCoordInTile = fragPosInPlane / tileSize - tileInPlane; \n\
          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
          blend(color, resultColor); \n\
          if (color.a == 1.0) { \n\
@@ -132,10 +138,10 @@
          vec3 planePos = bgPlanePos; \n\
          vec2 fragPos = gl_FragCoord.xy / zoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
          vec2 fragPosInPlane = fragPos - planePos.xy; \n\
-         vec2 tileInPlane = floor(fragPosInPlane / 16.0); \n\
+         vec2 tileInPlane = floor(fragPosInPlane / tileSize); \n\
          float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / 32.0).r); \n\
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
-         vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
+         vec2 texCoordInTile = fragPosInPlane / tileSize - tileInPlane; \n\
          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
          blend(color, resultColor); \n\
          if (color.a == 1.0) { \n\
@@ -203,7 +209,7 @@
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
-                  gl.UNSIGNED_SHORT_4_4_4_4, atlas);
+                  gl.UNSIGNED_SHORT_4_4_4_4, atlasImage);
     gl.uniform1i(atlasSamplerUniformLoc, 0);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
