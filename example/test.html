@@ -95,21 +95,21 @@
     fragmentShaderPreambleParts.push(
       'uniform sampler2D fgPlaneSampler; \n\
        uniform vec3 fgPlanePos; \n\
-       uniform float zoom;\n\
+       uniform float inverseZoom;\n\
        const vec2 atlasSize = vec2(' + atlasWidth + ', ' + atlasHeight + '); \n\
-       const vec2 tileSize = vec2(' + tileWidth + ', ' + tileHeight + '); \
+       const vec2 inverseTileSize = vec2(' + 1/tileWidth + ', ' + 1/tileHeight + '); \
       \n'
     );
 
     fragmentShaderMainParts.push(
       '{ \n\
          vec3 planePos = fgPlanePos; \n\
-         vec2 fragPos = gl_FragCoord.xy / zoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
-         vec2 fragPosInPlane = fragPos - planePos.xy; \n\
-         vec2 tileInPlane = floor(fragPosInPlane / tileSize); \n\
+         vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
+         vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
+         vec2 tileInPlane = floor(fractionalTileInPlane); \n\
          float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / 32.0).r); \n\
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
-         vec2 texCoordInTile = fragPosInPlane / tileSize - tileInPlane; \n\
+         vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
          blend(color, resultColor); \n\
          if (color.a == 1.0) { \n\
@@ -136,12 +136,12 @@
     fragmentShaderMainParts.push(
       '{ \n\
          vec3 planePos = bgPlanePos; \n\
-         vec2 fragPos = gl_FragCoord.xy / zoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
-         vec2 fragPosInPlane = fragPos - planePos.xy; \n\
-         vec2 tileInPlane = floor(fragPosInPlane / tileSize); \n\
+         vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
+         vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
+         vec2 tileInPlane = floor(fractionalTileInPlane); \n\
          float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / 32.0).r); \n\
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
-         vec2 texCoordInTile = fragPosInPlane / tileSize - tileInPlane; \n\
+         vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
          blend(color, resultColor); \n\
          if (color.a == 1.0) { \n\
@@ -199,7 +199,7 @@
     var fgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "fgPlaneSampler");
     var fgPlanePosUniformLoc = gl.getUniformLocation(program, "fgPlanePos");
 
-    var zoomUniformLoc = gl.getUniformLocation(program, "zoom");
+    var inverseZoomUniformLoc = gl.getUniformLocation(program, "inverseZoom");
 
     gl.useProgram(program);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
@@ -241,7 +241,7 @@
     gl.uniform3f(bgPlanePosUniformLoc, 0, 0, -2);
     gl.uniform3f(fgPlanePosUniformLoc, 0, 0, -1);
     gl.uniform3f(cameraPosUniformLoc, 0, 0, 0);
-    gl.uniform1f(zoomUniformLoc, 4);
+    gl.uniform1f(inverseZoomUniformLoc, 1/4);
 
     var vertexPositionBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
