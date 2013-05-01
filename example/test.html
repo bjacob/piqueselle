@@ -94,20 +94,20 @@
     );
 
     // fg plane
-    var planeWidth = 32;
-    var planeHeight = 32;
+    var fgPlaneWidth = 32;
+    var fgPlaneHeight = 32;
     var fgPlaneData = [];
-    for(i = 0; i < planeWidth*planeHeight; ++ i) {
+    for(i = 0; i < fgPlaneWidth*fgPlaneHeight; ++ i) {
       fgPlaneData.push(11);
     }
-    for(i = 3*planeWidth; i < 4*planeWidth; ++ i) {
+    for(i = 3*fgPlaneWidth; i < 4*fgPlaneWidth; ++ i) {
       fgPlaneData[i] = 0;
     }
     var fgPlane = new Uint8Array(fgPlaneData);
 
     fragmentShaderMainParts.push(
       '{ \n\
-         const vec2 planeSize = vec2(' + planeWidth + ', ' + planeHeight + '); \n\
+         const vec2 planeSize = vec2(' + fgPlaneWidth + ', ' + fgPlaneHeight + '); \n\
          vec3 planePos = fgPlanePos; \n\
          vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
          vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
@@ -126,10 +126,10 @@
     );
 
     // bg plane
-    var planeWidth = 32;  // intentionally reuse same variable name to have plane-generic shader generation
-    var planeHeight = 32;
+    var bgPlaneWidth = 32;
+    var bgPlaneHeight = 32;
     var bgPlaneData = [];
-    for(i = 0; i < planeWidth*planeHeight; ++ i) {
+    for(i = 0; i < bgPlaneWidth*bgPlaneHeight; ++ i) {
       bgPlaneData.push(15);
     }
     var bgPlane = new Uint8Array(bgPlaneData);
@@ -142,7 +142,7 @@
 
     fragmentShaderMainParts.push(
       '{ \n\
-         const vec2 planeSize = vec2(' + planeWidth + ', ' + planeHeight + '); \n\
+         const vec2 planeSize = vec2(' + bgPlaneWidth + ', ' + bgPlaneHeight + '); \n\
          vec3 planePos = bgPlanePos; \n\
          vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
          vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
@@ -233,7 +233,7 @@
     var bgPlaneTexture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE2);
     gl.bindTexture(gl.TEXTURE_2D, bgPlaneTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 32, 32, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, bgPlane);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, bgPlaneWidth, bgPlaneHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, bgPlane);
     gl.uniform1i(bgPlaneSamplerUniformLoc, 2);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
@@ -241,7 +241,7 @@
     var fgPlaneTexture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE3);
     gl.bindTexture(gl.TEXTURE_2D, fgPlaneTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, 32, 32, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, fgPlane);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, fgPlaneWidth, fgPlaneHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, fgPlane);
     gl.uniform1i(fgPlaneSamplerUniformLoc, 3);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
