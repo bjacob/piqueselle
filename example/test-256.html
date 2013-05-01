@@ -1,0 +1,292 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+</head>
+<script>
+  var requestAnimationFrame = window.requestAnimationFrame
+                           || window.mozRequestAnimationFrame
+                           || window.webkitRequestAnimationFrame
+                           || window.msRequestAnimationFrame
+                           || window.oRequestAnimationFrame;
+</script>
+<script>
+  var vertexShaderString =
+  'attribute vec2 vertexPosition; \n\
+   void main(void) { \n\
+     gl_Position = vec4(vertexPosition, 0.0, 1.0); \n\
+   } \n';
+
+  var fragmentShaderString = '';
+  var fragmentShaderPreambleParts = [];
+  var fragmentShaderMainParts = [];
+
+  fragmentShaderPreambleParts.push(
+    'precision mediump float; \n\
+     void blend(vec4 src, inout vec4 dst) { \n\
+       // http://developer.download.nvidia.com/SDK/10/opengl/src/dual_depth_peeling/doc/DualDepthPeeling.pdf \n\
+       dst.rgb = (dst.a * src.a) * src.rgb + dst.rgb; \n\
+       dst.a = (1.0 - src.a) * dst.a; \n\
+     } \n\
+     uniform vec3 cameraPos; \n\
+     \n'
+  );
+
+  fragmentShaderMainParts.push(
+    'vec4 resultColor = vec4(0, 0, 0, 1.0);\n\
+     vec4 color; \n\
+     \n'
+  );
+
+  function start() {
+    var i, j;
+
+    var canvas = document.getElementById("c");
+    canvas.width = 256;
+    canvas.height = 256;
+    var glOptions = {antialias:false, depth:false, alpha:false};
+    var gl = canvas.getContext("experimental-webgl", glOptions);
+
+    // texture atlas and toc
+    var atlasImage = document.getElementById("atlas");
+    var atlasTextureWidth = atlasImage.width;
+    var atlasTextureHeight = atlasImage.height;
+    var atlasWidth = 4; // expressed in tiles
+    var atlasHeight = 4;
+    var atlasTocData = [];
+    for(i = 0; i < atlasHeight; ++ i) {
+      for(j = 0; j < atlasWidth; ++ j) {
+        atlasTocData.push(i);
+        atlasTocData.push(j);
+      }
+    }
+    var atlasToc = new Uint8Array(atlasTocData);
+    var atlasTocSize = 16;
+
+    fragmentShaderPreambleParts.push(
+      'uniform sampler2D atlasSampler; \n\
+       uniform sampler2D atlasTocSampler; \n\
+      \n'
+    );
+
+    var tileWidth = atlasTextureWidth / atlasWidth;
+    var tileHeight = atlasTextureHeight / atlasHeight;
+
+    fragmentShaderPreambleParts.push(
+      'uniform float inverseZoom;\n\
+       const vec2 atlasSize = vec2(' + atlasWidth + ', ' + atlasHeight + '); \n\
+       const vec2 inverseTileSize = vec2(' + 1/tileWidth + ', ' + 1/tileHeight + '); \
+       const float atlasTocSize = float(' + atlasTocSize + '); \n\
+      \n'
+    );
+
+    // fg plane
+    var fgPlaneWidth = 32;
+    var fgPlaneHeight = 32;
+    var fgPlaneData = [];
+    for(i = 0; i < fgPlaneWidth*fgPlaneHeight; ++ i) {
+      fgPlaneData.push(11);
+    }
+    for(i = 3*fgPlaneWidth; i < 4*fgPlaneWidth; ++ i) {
+      fgPlaneData[i] = 0;
+    }
+    var fgPlane = new Uint8Array(fgPlaneData);
+
+    fragmentShaderPreambleParts.push(
+      'uniform sampler2D fgPlaneSampler; \n\
+       uniform vec3 fgPlanePos; \n\
+      \n'
+    );
+
+    fragmentShaderMainParts.push(
+      '{ \n\
+         const vec2 planeSize = vec2(' + fgPlaneWidth + ', ' + fgPlaneHeight + '); \n\
+         vec3 planePos = fgPlanePos; \n\
+         vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
+         vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
+         vec2 tileInPlane = floor(fractionalTileInPlane); \n\
+         float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / planeSize).r); \n\
+         vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / atlasTocSize, 0.0)).ra); \n\
+         vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
+         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
+         blend(color, resultColor); \n\
+         if (color.a == 1.0) { \n\
+           gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+           return; \n\
+         } \n\
+       } \n\
+       \n'
+    );
+
+    // bg plane
+    var bgPlaneWidth = 32;
+    var bgPlaneHeight = 32;
+    var bgPlaneData = [];
+    for(i = 0; i < bgPlaneWidth*bgPlaneHeight; ++ i) {
+      bgPlaneData.push(15);
+    }
+    var bgPlane = new Uint8Array(bgPlaneData);
+
+    fragmentShaderPreambleParts.push(
+      'uniform sampler2D bgPlaneSampler; \n\
+       uniform vec3 bgPlanePos; \n\
+      \n'
+    );
+
+    fragmentShaderMainParts.push(
+      '{ \n\
+         const vec2 planeSize = vec2(' + bgPlaneWidth + ', ' + bgPlaneHeight + '); \n\
+         vec3 planePos = bgPlanePos; \n\
+         vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
+         vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
+         vec2 tileInPlane = floor(fractionalTileInPlane); \n\
+         float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / planeSize).r); \n\
+         vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / atlasTocSize, 0.0)).ra); \n\
+         vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
+         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
+         blend(color, resultColor); \n\
+         if (color.a == 1.0) { \n\
+           gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+           return; \n\
+         } \n\
+       } \n\
+       \n'
+    );
+
+    fragmentShaderMainParts.push(
+      'gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+      \n'
+    );
+
+    fragmentShaderMainParts.unshift(
+      'void main(void) { \n\
+      \n'
+    );
+
+    fragmentShaderMainParts.push(
+      '} /* main */\n\
+      \n'
+    );
+
+    fragmentShaderString += fragmentShaderPreambleParts.join('');
+    fragmentShaderString += fragmentShaderMainParts.join('');
+    console.log('fragment shader source:\n' + fragmentShaderString);
+
+    // compile and link shader program
+    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexShaderString);
+    gl.compileShader(vertexShader);
+
+    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentShaderString);
+    gl.compileShader(fragmentShader);
+
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+
+    var vertexPositionAttrLoc = 0;
+    gl.bindAttribLocation(program, vertexPositionAttrLoc, "vertexPosition");
+
+    gl.linkProgram(program);
+
+    gl.enableVertexAttribArray(vertexPositionAttrLoc);
+
+    var cameraPosUniformLoc = gl.getUniformLocation(program, "cameraPos");
+
+    var atlasSamplerUniformLoc = gl.getUniformLocation(program, "atlasSampler");
+    var atlasTocSamplerUniformLoc = gl.getUniformLocation(program, "atlasTocSampler");
+
+    var bgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "bgPlaneSampler");
+    var bgPlanePosUniformLoc = gl.getUniformLocation(program, "bgPlanePos");
+
+    var fgPlaneSamplerUniformLoc = gl.getUniformLocation(program, "fgPlaneSampler");
+    var fgPlanePosUniformLoc = gl.getUniformLocation(program, "fgPlanePos");
+
+    var inverseZoomUniformLoc = gl.getUniformLocation(program, "inverseZoom");
+
+    gl.useProgram(program);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+
+    // bind texture elements
+    var atlasTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,
+                  gl.UNSIGNED_SHORT_4_4_4_4, atlasImage);
+    gl.uniform1i(atlasSamplerUniformLoc, 0);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    var atlasTocTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + 1);
+    gl.bindTexture(gl.TEXTURE_2D, atlasTocTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE_ALPHA, atlasTocSize, 1, 0, gl.LUMINANCE_ALPHA, gl.UNSIGNED_BYTE, atlasToc);
+    gl.uniform1i(atlasTocSamplerUniformLoc, 1);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    var bgPlaneTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + 2);
+    gl.bindTexture(gl.TEXTURE_2D, bgPlaneTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, bgPlaneWidth, bgPlaneHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, bgPlane);
+    gl.uniform1i(bgPlaneSamplerUniformLoc, 2);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    var fgPlaneTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0 + 3);
+    gl.bindTexture(gl.TEXTURE_2D, fgPlaneTexture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, fgPlaneWidth, fgPlaneHeight, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, fgPlane);
+    gl.uniform1i(fgPlaneSamplerUniformLoc, 3);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.uniform3f(bgPlanePosUniformLoc, 0, 0, -2);
+    gl.uniform3f(fgPlanePosUniformLoc, 0, 0, -1);
+    gl.uniform3f(cameraPosUniformLoc, 0, 0, 0);
+    gl.uniform1f(inverseZoomUniformLoc, 1/4);
+
+    var vertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
+    var vertices = [ -1,  -1,
+                     -1,  1,
+                     1,  -1,
+                     1,  1 ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
+
+    gl.disable(gl.CULL_FACE);
+
+    var angle = 0;
+
+    var timestamp = new Date().getTime();
+    var timestamp_of_last_dump = timestamp;
+    var frames_since_last_dump = 0;
+
+    function render() {
+
+      timestamp = new Date().getTime();
+      frames_since_last_dump++;
+
+      if (timestamp - timestamp_of_last_dump > 1000) {
+        // console.log("" + frames_since_last_dump + " frames per second");
+        frames_since_last_dump = 0;
+        timestamp_of_last_dump = timestamp;
+      }
+
+      angle = timestamp / 2000.0;
+      gl.uniform3f(cameraPosUniformLoc, 100 * Math.cos(angle), 20 * Math.sin(angle), 0);
+
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+      requestAnimationFrame(render);
+    }
+
+    requestAnimationFrame(render);
+  }
+</script>
+<body onload="start();">
+  <img id="atlas" src="walls1.png" style="display: none"></img>
+  <canvas id="c" style="width:100%; height:100%"></canvas>
+</body>
+</html>
