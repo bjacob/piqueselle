@@ -84,9 +84,7 @@
     var tileHeight = atlasTextureHeight / atlasHeight;
 
     fragmentShaderPreambleParts.push(
-      'uniform sampler2D fgPlaneSampler; \n\
-       uniform vec3 fgPlanePos; \n\
-       uniform float inverseZoom;\n\
+      'uniform float inverseZoom;\n\
        const vec2 atlasSize = vec2(' + atlasWidth + ', ' + atlasHeight + '); \n\
        const vec2 inverseTileSize = vec2(' + 1/tileWidth + ', ' + 1/tileHeight + '); \
        const float atlasTocSize = float(' + atlasTocSize + '); \n\
@@ -104,6 +102,12 @@
       fgPlaneData[i] = 0;
     }
     var fgPlane = new Uint8Array(fgPlaneData);
+
+    fragmentShaderPreambleParts.push(
+      'uniform sampler2D fgPlaneSampler; \n\
+       uniform vec3 fgPlanePos; \n\
+      \n'
+    );
 
     fragmentShaderMainParts.push(
       '{ \n\
