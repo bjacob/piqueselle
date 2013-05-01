@@ -92,22 +92,25 @@
     );
 
     // fg plane
+    var planeWidth = 32;
+    var planeHeight = 32;
     var fgPlaneData = [];
-    for(i = 0; i < 32*32; ++ i) {
+    for(i = 0; i < planeWidth*planeHeight; ++ i) {
       fgPlaneData.push(11);
     }
-    for(i = 3*32; i < 4*32; ++ i) {
+    for(i = 3*planeWidth; i < 4*planeWidth; ++ i) {
       fgPlaneData[i] = 0;
     }
     var fgPlane = new Uint8Array(fgPlaneData);
 
     fragmentShaderMainParts.push(
       '{ \n\
+         const vec2 planeSize = vec2(' + planeWidth + ', ' + planeHeight + '); \n\
          vec3 planePos = fgPlanePos; \n\
          vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
          vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
          vec2 tileInPlane = floor(fractionalTileInPlane); \n\
-         float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / 32.0).r); \n\
+         float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / planeSize).r); \n\
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
          vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
@@ -121,8 +124,10 @@
     );
 
     // bg plane
+    var planeWidth = 32;  // intentionally reuse same variable name to have plane-generic shader generation
+    var planeHeight = 32;
     var bgPlaneData = [];
-    for(i = 0; i < 32*32; ++ i) {
+    for(i = 0; i < planeWidth*planeHeight; ++ i) {
       bgPlaneData.push(15);
     }
     var bgPlane = new Uint8Array(bgPlaneData);
@@ -135,11 +140,12 @@
 
     fragmentShaderMainParts.push(
       '{ \n\
+         const vec2 planeSize = vec2(' + planeWidth + ', ' + planeHeight + '); \n\
          vec3 planePos = bgPlanePos; \n\
          vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
          vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
          vec2 tileInPlane = floor(fractionalTileInPlane); \n\
-         float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / 32.0).r); \n\
+         float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / planeSize).r); \n\
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
          vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
