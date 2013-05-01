@@ -59,10 +59,12 @@
     window.addEventListener('resize', resizeCanvas);
 
     // texture atlas and toc
+    var atlasWidth = 4;
+    var atlasHeight = 4;
     var atlas = document.getElementById("atlas");
     var atlasTocData = [];
-    for(i = 0; i < 4; ++ i) {
-      for(j = 0; j < 4; ++ j) {
+    for(i = 0; i < atlasHeight; ++ i) {
+      for(j = 0; j < atlasWidth; ++ j) {
         atlasTocData.push(i);
         atlasTocData.push(j);
       }
@@ -89,6 +91,7 @@
       'uniform sampler2D fgPlaneSampler; \n\
        uniform vec3 fgPlanePos; \n\
        uniform float zoom;\n\
+       const vec2 atlasSize = vec2(' + atlasWidth + ', ' + atlasHeight + '); \n\
       \n'
     );
 
@@ -101,7 +104,7 @@
          float tocIndexForPlane = floor(256.0 * texture2D(fgPlaneSampler, tileInPlane / 32.0).r); \n\
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
          vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
-         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0); \n\
+         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
          blend(color, resultColor); \n\
          if (color.a == 1.0) { \n\
            gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
@@ -133,7 +136,7 @@
          float tocIndexForPlane = floor(256.0 * texture2D(bgPlaneSampler, tileInPlane / 32.0).r); \n\
          vec2 atlasCoordForPlane = floor(256.0 * texture2D(atlasTocSampler, vec2(tocIndexForPlane / 16.0, 0.0)).ra); \n\
          vec2 texCoordInTile = fragPosInPlane / 16.0 - tileInPlane; \n\
-         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / 4.0); \n\
+         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
          blend(color, resultColor); \n\
          if (color.a == 1.0) { \n\
            gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
