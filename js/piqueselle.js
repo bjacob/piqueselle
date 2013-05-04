@@ -60,27 +60,40 @@
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
 
+    var vertexPositionAttrLoc = 0;
+    gl.bindAttribLocation(program, vertexPositionAttrLoc, "vertexPosition");
+
+    gl.linkProgram(program);
+
     this.renderer = renderer;
     this.atlas = atlas;
     this.maps = maps;
-    this.program;
-  };
-  Scene.prototype.render = function render(camera) {
-
+    this.program = program;
   };
 
-  function Camera(position) {
+  function Camera(context, position) {
     position = position || [0.0, 0.0];
-    var globals = [
-      'uniform float inverseZoom;',
-      'uniform vec3 cameraPos;'
-    ];
 
-    this.globals = globals;
+    var gl = context.gl;
   };
 
   function Renderer(context) {
+    var gl = context.gl;
 
+    var vertexPositionAttrLoc = 0;
+    gl.enableVertexAttribArray(vertexPositionAttrLoc);
+    var vertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
+    var vertices = [ -1,  -1,
+                     -1,   1,
+                      1,  -1,
+                      1,   1 ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+    gl.vertexAttribPointer(vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
+
+    this.context = context;
+  };
+  Renderer.prototype.render = function render(scene, camera) {
   };
 
   function TextureAtlas(context, options) {
@@ -104,7 +117,7 @@
     var indexType = options['indexType'] || 'UNSIGNED_BYTE';
 
     var tileSize = options['tileSize'] || 16;
-    var fragmentShaderString;
+    var fragmentShaderGlobals;
 
     var atlasTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
@@ -152,6 +165,8 @@
       const vec2 atlasSize = vec2(' + atlas['width'] + ', ' + atlas['height'] + '); \n\
       const vec2 inverseTileSize = vec2(' + 1/tileSize + ', ' + 1/tileSize + '); \n\
       const float indexSize = float(' + index['width'] + '); \n\
+      uniform float inverseZoom; \n\
+      uniform vec3 cameraPos; \n\
     \n';
 
     this.atlasTexture = atlasTexture;
@@ -159,8 +174,8 @@
     this.fragmentShaderGlobals = fragmentShaderGlobals;
   };
 
-  var nextTileMapId = 0;
-  function TileMap(context, options) {
+  var nextTilePlaneId = 0;
+  function TilePlane(context, options) {
     options = options || {};
 
     if(!options.hasOwnProperty('map')) {
@@ -171,7 +186,7 @@
     var map = options['map'];
     var format = options['format'] || 'LUMINANCE';
     var type = options['type'] || 'UNSIGNED_BYTE';
-    var name = options['name'] || 'tilemap' + (nextTileMapId++);
+    var name = options['name'] || 'tilemap' + (nextTilePlaneId++);
     var position = options['position'] || [0.0, 0.0, 0.0];
 
     var fragmentShaderGlobals;
@@ -230,9 +245,6 @@
   };
 
   function Context(canvasElement) {
-    // FIXME: we should detect this
-    this.textureUnits = [0, 1, 2, 3, 4, 5, 6, 7];
-
     var glOptions = {
       antialias: false,
       depth: false,
@@ -244,7 +256,8 @@
     this.Renderer = Renderer.bind(undefined, this);
     this.Scene = Scene.bind(undefined, this);
     this.TextureAtlas = TextureAtlas.bind(undefined, this);
-    this.TileMap = TileMap.bind(undefined, this);
+    this.TilePlane = TilePlane.bind(undefined, this);
+    this.Camera = Camera.bind(undefined, this);
   };
 
   window.Piqueselle = {

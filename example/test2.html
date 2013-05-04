@@ -49,9 +49,9 @@ function start() {
     }
   });
 
-  console.log('atlas: ', atlas);
-  console.log('map', plane);
-
+  var scene = new context.Scene(atlas, [plane]);
+  var renderer = new context.Renderer();
+  renderer.render(scene, camera);
 };
 </script>
 <body onload="start();">
