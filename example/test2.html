@@ -36,22 +36,57 @@ function start() {
     }
   });
 
-  var plane = [];
+  var front = [];
   for(i = 0; i < 32*32; ++ i) {
-    plane.push(0);
+    front.push(11);
+  }
+  for(i = 3*32; i < 4*32; ++ i) {
+    front[i] = 0;
   }
 
-  var plane = new context.TileMap({
+  var back = [];
+  for(i = 0; i < 32*32; ++ i) {
+    back.push(15);
+  }
+
+  var frontPlane = new context.TilePlane({
     map: {
-      data: new Uint8Array(plane),
+      data: new Uint8Array(front),
       width: 32,
       height: 32
-    }
+    },
   });
 
-  var scene = new context.Scene(atlas, [plane]);
+  var backPlane = new context.TilePlane({
+    map: {
+      data: new Uint8Array(back),
+      width: 32,
+      height: 32
+    },
+  });
+
+  var scene = new context.Scene(atlas,
+    [
+      [frontPlane, -1],
+      [backPlane, -2]
+    ]
+  );
   var renderer = new context.Renderer();
-  renderer.render(scene, camera);
+  var camera = new context.Camera();
+
+  var angle = 0;
+  var timestamp = new Date().getTime();
+  function update() {
+    angle = timestamp / 2000.0;
+
+    camera.x = 100 * Math.cos(angle);
+    camera.y = 20 * Math.sin(angle);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(update);
+  };
+
+  requestAnimationFrame(update);
 };
 </script>
 <body onload="start();">
