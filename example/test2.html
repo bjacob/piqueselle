@@ -1,0 +1,103 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+</head>
+<script>
+  var requestAnimationFrame = window.requestAnimationFrame
+                           || window.mozRequestAnimationFrame
+                           || window.webkitRequestAnimationFrame
+                           || window.msRequestAnimationFrame
+                           || window.oRequestAnimationFrame;
+</script>
+<script src="../js/piqueselle.js"></script>
+<script>
+function start() {
+  var i, j;
+  var canvas = document.getElementById("c");
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+
+  var context = new Piqueselle.Context(canvas);
+
+  var index = [];
+  for(i = 0; i < 4; ++ i) {
+    for(j = 0; j < 4; ++ j) {
+      index.push(i);
+      index.push(j);
+    }
+  }
+
+  var atlas = new context.TextureAtlas({
+    atlas: document.getElementById("atlas"),
+    index: {
+      data: new Uint8Array(index),
+      width: 16,
+      height: 1
+    }
+  });
+
+  var front = [];
+  for(i = 0; i < 32*32; ++ i) {
+    front.push(11);
+  }
+  for(i = 3*32; i < 4*32; ++ i) {
+    front[i] = 0;
+  }
+
+  var back = [];
+  for(i = 0; i < 32*32; ++ i) {
+    back.push(15);
+  }
+
+  var frontPlane = new context.TilePlane({
+    map: {
+      data: new Uint8Array(front),
+      width: 32,
+      height: 32
+    },
+  });
+
+  var backPlane = new context.TilePlane({
+    map: {
+      data: new Uint8Array(back),
+      width: 32,
+      height: 32
+    },
+  });
+
+  var scene = new context.Scene(atlas,
+    [
+      [frontPlane, -1],
+      [backPlane, -2]
+    ]
+  );
+  var renderer = new context.Renderer();
+  var camera = new context.Camera();
+
+  var angle = 0;
+  var timestamp;
+  function update() {
+    timestamp = new Date().getTime();
+    angle = timestamp / 2000.0;
+
+    camera.x = 100 * Math.cos(angle);
+    camera.y = 20 * Math.sin(angle);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(update);
+  };
+
+  requestAnimationFrame(update);
+
+  window.addEventListener('resize', handleResize);
+
+  function handleResize() {
+    context.resize();
+  };
+};
+</script>
+<body onload="start();">
+  <img id="atlas" src="walls1.png" style="display: none"></img>
+  <canvas id="c" style="width:100%; height:100%"></canvas>
+</body>
+</html>

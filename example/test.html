@@ -45,6 +45,7 @@
     canvas.height = canvas.clientHeight;
     var glOptions = {antialias:false, depth:false, alpha:false};
     var gl = canvas.getContext("experimental-webgl", glOptions);
+    window.gl = gl;
 
     function resizeCanvas() {
       if (canvas.width != canvas.clientWidth ||
