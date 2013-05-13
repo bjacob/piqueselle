@@ -53,7 +53,7 @@
     fragmentShaderString = fragmentShaderString.replace("%GLOBALS%", fragmentShaderGlobals.join(''));
     fragmentShaderString = fragmentShaderString.replace("%MAIN%", fragmentShaderMain.join(''));
 
-    console.log('fragment shader: ' + fragmentShaderString);
+    // console.log('fragment shader: ' + fragmentShaderString);
 
     var vertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(vertexShader, vertexShaderString);
@@ -117,30 +117,13 @@
     gl.uniform1f(scene.uniformLocations['inverseZoom'], 1/camera.zoom);
 
     // Bind to texture units
+    nextTextureUnit = scene.atlas.bindTextures(program, nextTextureUnit);
+
     var textureLocations;
-
-    textureLocations = scene.atlas.getTextureUniformLocations(program);
-    textureLocations.forEach(function(textureLocation) {
-      var textureUnit = nextTextureUnit ++;
-      var location = textureLocation[0];
-      var texture = textureLocation[1];
-      gl.activeTexture(gl.TEXTURE0 + textureUnit);
-      gl.bindTexture(gl.TEXTURE_2D, texture);
-      gl.uniform1i(location, textureUnit);
-    });
-
     var planes = scene.planes;
     planes.forEach(function(plane) {
-      textureLocations = plane.getTextureUniformLocations(program);
-      textureLocations.forEach(function(textureLocation) {
-        var textureUnit = nextTextureUnit ++;
-        var location = textureLocation[0];
-        var texture = textureLocation[1];
-        gl.activeTexture(gl.TEXTURE0 + textureUnit);
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-        gl.uniform1i(location, textureUnit);
-        gl.uniform3f(plane.getPositionUniformLocation(program), plane.position[0], plane.position[1], plane.position[2]);
-      });
+      nextTextureUnit = plane.bindTextures(program, nextTextureUnit);
+      plane.prepare(program);
     });
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -206,7 +189,6 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-
     var fragmentShaderGlobals =
     '\n\
       uniform sampler2D atlasSampler; \n\
@@ -221,15 +203,22 @@
     this.indexTexture = indexTexture;
     this.fragmentShaderGlobals = fragmentShaderGlobals;
   };
-  TextureAtlas.prototype.getTextureUniformLocations = function getTextureUniformLocations(program) {
+  TextureAtlas.prototype.bindTextures = function bindTextures(program, nextTextureUnit) {
     var gl = this.context.gl;
 
-    var textureUniformLocations = [
-      [gl.getUniformLocation(program, 'atlasSampler'), this.atlasTexture],
-      [gl.getUniformLocation(program, 'indexSampler'), this.indexTexture]
-    ];
+    gl.activeTexture(gl.TEXTURE0 + nextTextureUnit);
+    gl.bindTexture(gl.TEXTURE_2D, this.atlasTexture);
+    gl.uniform1i(gl.getUniformLocation(program, 'atlasSampler'), nextTextureUnit);
 
-    return textureUniformLocations;
+    ++ nextTextureUnit;
+
+    gl.activeTexture(gl.TEXTURE0 + nextTextureUnit);
+    gl.bindTexture(gl.TEXTURE_2D, this.indexTexture);
+    gl.uniform1i(gl.getUniformLocation(program, 'indexSampler'), nextTextureUnit);
+
+    ++ nextTextureUnit;
+
+    return nextTextureUnit;
   };
 
   var nextTilePlaneId = 0;
@@ -301,21 +290,19 @@
     this.fragmentShaderGlobals = fragmentShaderGlobals;
     this.fragmentShaderMain = fragmentShaderMain;
   };
-  TilePlane.prototype.getTextureUniformLocations = function getTextureUniformLocations(program) {
+  TilePlane.prototype.bindTextures = function bindTextures(program, nextTextureUnit) {
     var gl = this.context.gl;
-    var name = this.name;
 
-    var textureUniformLocations = [
-      [gl.getUniformLocation(program, name + 'Sampler'), this.texture]
-    ];
+    gl.activeTexture(gl.TEXTURE0 + nextTextureUnit);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.uniform1i(gl.getUniformLocation(program, this.name + 'Sampler'), nextTextureUnit);
 
-    return textureUniformLocations;
+    return ++ nextTextureUnit;
   };
-  TilePlane.prototype.getPositionUniformLocation = function getPositionUniformLocation(program) {
+  TilePlane.prototype.prepare = function prepare(program) {
     var gl = this.context.gl;
-    var name = this.name;
 
-    return gl.getUniformLocation(program, name + 'Pos');
+    gl.uniform3f(gl.getUniformLocation(program, this.name + 'Pos'), this.position[0], this.position[1], this.position[2]);
   };
 
   function Context(canvasElement) {
