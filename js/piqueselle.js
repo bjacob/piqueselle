@@ -102,8 +102,6 @@
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
     gl.vertexAttribPointer(context.vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
 
-    gl.disable(gl.CULL_FACE);
-
     this.context = context;
   };
   Renderer.prototype.render = function render(scene, camera) {
@@ -329,6 +327,7 @@
     var vertexPositionAttrLoc = 0;
 
     gl.enableVertexAttribArray(vertexPositionAttrLoc);
+    gl.disable(gl.CULL_FACE);
 
     this.canvas = canvasElement;
     this.gl = gl;
