@@ -84,9 +84,10 @@
     this.uniformLocations = uniformLocations;
   };
 
-  function Camera(position) {
+  function Camera(position, zoom) {
     this.x = position[0] || 0;
     this.y = position[1] || 0;
+    this.zoom = zoom || 4;
   };
 
   function Renderer(context) {
@@ -115,7 +116,7 @@
 
     // Set camera position
     gl.uniform3f(scene.uniformLocations['cameraPos'], camera.x, camera.y, 0);
-    gl.uniform1f(scene.uniformLocations['inverseZoom'], 1/4);
+    gl.uniform1f(scene.uniformLocations['inverseZoom'], 1/camera.zoom);
 
     // Bind to texture units
     var textureLocations;

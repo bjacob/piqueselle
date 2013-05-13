@@ -82,6 +82,7 @@ function start() {
 
     camera.x = 100 * Math.cos(angle);
     camera.y = 20 * Math.sin(angle);
+    camera.zoom = 4 * (3 + Math.sin(angle))/2;
 
     renderer.render(scene, camera);
     requestAnimationFrame(update);
