@@ -75,8 +75,9 @@ function start() {
   var camera = new context.Camera();
 
   var angle = 0;
-  var timestamp = new Date().getTime();
+  var timestamp;
   function update() {
+    timestamp = new Date().getTime();
     angle = timestamp / 2000.0;
 
     camera.x = 100 * Math.cos(angle);
@@ -87,6 +88,12 @@ function start() {
   };
 
   requestAnimationFrame(update);
+
+  window.addEventListener('resize', handleResize);
+
+  function handleResize() {
+    context.resize();
+  };
 };
 </script>
 <body onload="start();">

@@ -132,7 +132,7 @@
 
     var planes = scene.planes;
     planes.forEach(function(plane) {
-      textureLocation = plane[0].getTextureUniformLocations(program);
+      textureLocations = plane[0].getTextureUniformLocations(program);
       textureLocations.forEach(function(textureLocation) {
         var textureUnit = nextTextureUnit ++;
         var location = textureLocation[0];
@@ -143,6 +143,8 @@
         gl.uniform3f(plane[0].getPositionUniformLocation(program), 0, 0, plane[1]);
       });
     });
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   };
 
   function TextureAtlas(context, options) {
@@ -210,7 +212,7 @@
     '\n\
       uniform sampler2D atlasSampler; \n\
       uniform sampler2D indexSampler; \n\
-      const vec2 atlasSize = vec2(' + atlas['width'] + ', ' + atlas['height'] + '); \n\
+      const vec2 atlasSize = vec2(' + atlas['width']/tileSize + ', ' + atlas['height']/tileSize + '); \n\
       const vec2 inverseTileSize = vec2(' + 1/tileSize + ', ' + 1/tileSize + '); \n\
       const float indexSize = float(' + index['width'] + '); \n\
     \n';
@@ -327,6 +329,7 @@
 
     gl.enableVertexAttribArray(vertexPositionAttrLoc);
 
+    this.canvas = canvasElement;
     this.gl = gl;
     this.Renderer = Renderer.bind(undefined, this);
     this.Scene = Scene.bind(undefined, this);
@@ -334,6 +337,18 @@
     this.TilePlane = TilePlane.bind(undefined, this);
     this.Camera = Camera.bind(undefined, this);
     this.vertexPositionAttrLoc = vertexPositionAttrLoc;
+  };
+  Context.prototype.resize = function resize() {
+    var canvas = this.canvas;
+    var gl = this.gl;
+
+    if (canvas.width != canvas.clientWidth ||
+          canvas.height != canvas.clientHeight)
+      {
+        canvas.width = canvas.clientWidth;
+        canvas.height = canvas.clientHeight;
+        gl.viewport(0, 0, canvas.width, canvas.height);
+      }
   };
 
   window.Piqueselle = {
