@@ -46,8 +46,8 @@
     var fragmentShaderMain = [];
 
     planes.forEach(function(plane) {
-      fragmentShaderGlobals.push(plane[0].fragmentShaderGlobals);
-      fragmentShaderMain.push(plane[0].fragmentShaderMain);
+      fragmentShaderGlobals.push(plane.fragmentShaderGlobals);
+      fragmentShaderMain.push(plane.fragmentShaderMain);
     });
 
     fragmentShaderString = fragmentShaderString.replace("%GLOBALS%", fragmentShaderGlobals.join(''));
@@ -131,7 +131,7 @@
 
     var planes = scene.planes;
     planes.forEach(function(plane) {
-      textureLocations = plane[0].getTextureUniformLocations(program);
+      textureLocations = plane.getTextureUniformLocations(program);
       textureLocations.forEach(function(textureLocation) {
         var textureUnit = nextTextureUnit ++;
         var location = textureLocation[0];
@@ -139,7 +139,7 @@
         gl.activeTexture(gl.TEXTURE0 + textureUnit);
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.uniform1i(location, textureUnit);
-        gl.uniform3f(plane[0].getPositionUniformLocation(program), 0, 0, plane[1]);
+        gl.uniform3f(plane.getPositionUniformLocation(program), plane.position[0], plane.position[1], plane.position[2]);
       });
     });
 
@@ -297,6 +297,7 @@
     this.context = context;
     this.texture = texture;
     this.name = name;
+    this.position = position;
     this.fragmentShaderGlobals = fragmentShaderGlobals;
     this.fragmentShaderMain = fragmentShaderMain;
   };

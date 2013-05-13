@@ -55,6 +55,7 @@ function start() {
       width: 32,
       height: 32
     },
+    position: [0, 0, -1]
   });
 
   var backPlane = new context.TilePlane({
@@ -63,12 +64,13 @@ function start() {
       width: 32,
       height: 32
     },
+    position: [0, 0, -2]
   });
 
   var scene = new context.Scene(atlas,
     [
-      [frontPlane, -1],
-      [backPlane, -2]
+      frontPlane,
+      backPlane
     ]
   );
   var renderer = new context.Renderer();
