@@ -1,0 +1,119 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+</head>
+<script>
+  var requestAnimationFrame = window.requestAnimationFrame
+                           || window.mozRequestAnimationFrame
+                           || window.webkitRequestAnimationFrame
+                           || window.msRequestAnimationFrame
+                           || window.oRequestAnimationFrame;
+</script>
+<script src="../js/piqueselle.js"></script>
+<script>
+function start() {
+  var i, j;
+  var canvas = document.getElementById("c");
+  canvas.width = canvas.clientWidth;
+  canvas.height = canvas.clientHeight;
+
+  var context = new Piqueselle.Context(canvas);
+
+  var index = [];
+  for(i = 0; i < 32; ++ i) {
+    for(j = 0; j < 32; ++ j) {
+      index.push(i);
+      index.push(j);
+    }
+  }
+
+  var atlas = new context.TextureAtlas({
+    atlas: document.getElementById("atlas"),
+    index: {
+      data: new Uint8Array(index),
+      width: index.length / 2,
+      height: 1
+    }
+  });
+
+  var main = [];
+  for(i = 0; i < 128*32; ++ i) {
+    main.push(0);
+    main.push(7);
+  }
+  for(i = 0*128; i < 5*128; ++ i) {
+    main[2*i] = 1;
+    main[2*i+1] = 1;
+  }
+  for(i = 5*128; i < 6*128; ++ i) {
+    main[2*i] = 1;
+    main[2*i+1] = 0;
+  }
+  var foreground = [];
+  for(i = 0; i < 128*32; ++ i) {
+    foreground.push(0);
+    foreground.push(7);
+  }
+  for (i = 0; i < 125; i += 4 + Math.floor(8 * Math.random())) {
+    var h = 12 + Math.floor(10 * Math.random());
+    for(j = 0; j < h; j++) {
+      var k = 128*j + i;
+      foreground[2*k] = (j == (h-1)) ? 5 : 6;
+      foreground[2*k+1] = 9;
+    }
+  }
+  var mainPlane = new context.TilePlane({
+    map: {
+      data: new Uint8Array(main),
+      width: 128,
+      height: 32
+    },
+    position: [0, 0, -1]
+  });
+
+  var foregroundPlane = new context.TilePlane({
+    map: {
+      data: new Uint8Array(foreground),
+      width: 128,
+      height: 32
+    },
+    position: [0, -120, -0.5]
+  });
+
+  var scene = new context.Scene(atlas,
+    [
+      foregroundPlane,
+      mainPlane
+    ]
+  );
+  var renderer = new context.Renderer();
+  var camera = new context.Camera();
+
+  var angle = 0;
+  var timestamp;
+  function update() {
+    timestamp = new Date().getTime();
+    angle = timestamp / 2000.0;
+
+    camera.x = 100 * Math.cos(angle);
+    camera.y = 20 * Math.sin(angle);
+    camera.zoom = 2 * (3 + Math.sin(angle))/2;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(update);
+  };
+
+  requestAnimationFrame(update);
+
+  window.addEventListener('resize', handleResize);
+
+  function handleResize() {
+    context.resize();
+  };
+};
+</script>
+<body onload="start();">
+  <img id="atlas" src="mario-tiles.png" style="display: none"></img>
+  <canvas id="c" style="width:100%; height:100%"></canvas>
+</body>
+</html>
