@@ -136,18 +136,10 @@
       throw new Error('missing atlas');
     }
 
-    if(!options.hasOwnProperty('index')) {
-      throw new Error('missing index');
-    }
-
     var gl = context.gl;
     var atlas = options['atlas'];
     var atlasFormat = options['atlasFormat'] || 'RGBA';
     var atlasType = options['atlasType'] || 'UNSIGNED_SHORT_4_4_4_4';
-
-    var index = options['index'];
-    var indexFormat = options['indexFormat'] || 'LUMINANCE_ALPHA';
-    var indexType = options['indexType'] || 'UNSIGNED_BYTE';
 
     var tileSize = options['tileSize'] || 16;
 
@@ -170,37 +162,15 @@
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-    var indexTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, indexTexture);
-    if(index instanceof HTMLImageElement) {
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl[indexFormat],
-        gl[indexFormat], gl[indexType], index);
-    } else {
-      if(!index.hasOwnProperty('data')) {
-        throw new Error('missing index data');
-      } else if(!index.hasOwnProperty('width')) {
-        throw new Error('missing index width');
-      } else if(!index.hasOwnProperty('height')) {
-        throw new Error('missing index height');
-      }
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl[indexFormat],
-        index['width'], index['height'], 0, gl[indexFormat], gl[indexType], index['data']);
-    }
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
     var fragmentShaderGlobals =
     '\n\
       uniform sampler2D atlasSampler; \n\
-      uniform sampler2D indexSampler; \n\
       const vec2 atlasSize = vec2(' + atlas['width']/tileSize + ', ' + atlas['height']/tileSize + '); \n\
       const vec2 inverseTileSize = vec2(' + 1/tileSize + ', ' + 1/tileSize + '); \n\
-      const float indexSize = float(' + index['width'] + '); \n\
     \n';
 
     this.context = context;
     this.atlasTexture = atlasTexture;
-    this.indexTexture = indexTexture;
     this.fragmentShaderGlobals = fragmentShaderGlobals;
   };
   TextureAtlas.prototype.bindTextures = function bindTextures(program, nextTextureUnit) {
@@ -209,12 +179,6 @@
     gl.activeTexture(gl.TEXTURE0 + nextTextureUnit);
     gl.bindTexture(gl.TEXTURE_2D, this.atlasTexture);
     gl.uniform1i(gl.getUniformLocation(program, 'atlasSampler'), nextTextureUnit);
-
-    ++ nextTextureUnit;
-
-    gl.activeTexture(gl.TEXTURE0 + nextTextureUnit);
-    gl.bindTexture(gl.TEXTURE_2D, this.indexTexture);
-    gl.uniform1i(gl.getUniformLocation(program, 'indexSampler'), nextTextureUnit);
 
     ++ nextTextureUnit;
 
@@ -231,7 +195,7 @@
 
     var gl = context.gl;
     var map = options['map'];
-    var format = options['format'] || 'LUMINANCE';
+    var format = options['format'] || 'LUMINANCE_ALPHA';
     var type = options['type'] || 'UNSIGNED_BYTE';
     var name = options['name'] || 'TilePlane' + (nextTilePlaneId++);
     var position = options['position'] || [0.0, 0.0, 0.0];
@@ -271,8 +235,7 @@
         vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
         vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
         vec2 tileInPlane = floor(fractionalTileInPlane); \n\
-        float indexOffsetForPlane = floor(256.0 * texture2D(' + name + 'Sampler, tileInPlane / planeSize).r); \n\
-        vec2 atlasCoordForPlane = floor(256.0 * texture2D(indexSampler, vec2(indexOffsetForPlane / indexSize, 0.0)).ra); \n\
+        vec2 atlasCoordForPlane = floor(256.0 * texture2D(' + name + 'Sampler, tileInPlane / planeSize).ra); \n\
         vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
         color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
         blend(color, resultColor); \n\
