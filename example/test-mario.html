@@ -19,21 +19,8 @@ function start() {
 
   var context = new Piqueselle.Context(canvas);
 
-  var index = [];
-  for(i = 0; i < 32; ++ i) {
-    for(j = 0; j < 32; ++ j) {
-      index.push(i);
-      index.push(j);
-    }
-  }
-
   var atlas = new context.TextureAtlas({
-    atlas: document.getElementById("atlas"),
-    index: {
-      data: new Uint8Array(index),
-      width: index.length / 2,
-      height: 1
-    }
+    atlas: document.getElementById("atlas")
   });
 
   var main = [];
