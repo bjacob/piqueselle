@@ -5,7 +5,11 @@
   };
 
   var nextSceneId = 0;
-  function Scene(context, atlas, planes) {
+  function Scene(context, atlas, planes, options) {
+    options = options || {};
+
+    this.backgroundColor = options.backgroundColor || [0, 0, 0];
+
     var gl = context.gl;
     var id = nextSceneId++;
 
@@ -28,6 +32,7 @@
       \n\
       uniform float inverseZoom; \n\
       uniform vec3 cameraPos; \n\
+      uniform vec3 backgroundColor; \n\
       \n\
       %GLOBALS% \n\
       \n\
@@ -38,6 +43,7 @@
         \n\
         %MAIN% \n\
         \n\
+        blend(vec4(backgroundColor, 1.0), resultColor); \n\
         gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
       } \n\
       \n';
@@ -75,6 +81,7 @@
     var uniformLocations = {
       'cameraPos': gl.getUniformLocation(program, "cameraPos"),
       'inverseZoom': gl.getUniformLocation(program, "inverseZoom"),
+      'backgroundColor': gl.getUniformLocation(program, "backgroundColor"),
     };
 
     this.atlas = atlas;
@@ -82,6 +89,7 @@
     this.program = program;
     this.id = id;
     this.uniformLocations = uniformLocations;
+    this.backgroundColor = options.backgroundColor;
   };
 
   function Camera(position, zoom) {
@@ -115,6 +123,7 @@
     // Set camera position
     gl.uniform3f(scene.uniformLocations['cameraPos'], camera.x, camera.y, 0);
     gl.uniform1f(scene.uniformLocations['inverseZoom'], 1/camera.zoom);
+    gl.uniform3fv(scene.uniformLocations['backgroundColor'], scene.backgroundColor);
 
     // Bind to texture units
     nextTextureUnit = scene.atlas.bindTextures(program, nextTextureUnit);
@@ -220,8 +229,8 @@
     }
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, horizontalWrapMode);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, verticalWrapMode);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl[horizontalWrapMode]);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl[verticalWrapMode]);
 
     var fragmentShaderGlobals =
     '\n\

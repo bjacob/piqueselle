@@ -77,14 +77,16 @@ function start() {
       width: 128,
       height: 32
     },
-    position: [0, -120, -0.5]
+    position: [0, -120, -0.5],
+    horizontalWrapMode: 'REPEAT'
   });
 
   var scene = new context.Scene(atlas,
     [
       foregroundPlane,
       mainPlane
-    ]
+    ],
+    { backgroundColor: [0.5, 0.8, 1.0] }
   );
   var renderer = new context.Renderer();
   var camera = new context.Camera();
@@ -95,9 +97,9 @@ function start() {
     timestamp = new Date().getTime();
     angle = timestamp / 2000.0;
 
-    camera.x = 100 * Math.cos(angle);
-    camera.y = 20 * Math.sin(angle);
-    camera.zoom = 2 * (3 + Math.sin(angle))/2;
+    camera.x = 250 * Math.cos(angle);
+    camera.y = 10 + 10 * Math.sin(angle);
+    camera.zoom = 4 + Math.sin(angle);
 
     renderer.render(scene, camera);
     requestAnimationFrame(update);
