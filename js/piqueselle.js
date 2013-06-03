@@ -43,8 +43,8 @@
         \n\
         %MAIN% \n\
         \n\
-        blend(vec4(backgroundColor, 1.0), resultColor); \n\
-        gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+        // finally, blend resultColor into the backgroundColor and record the resulting fragment color \n\
+        gl_FragColor = vec4(resultColor.a * backgroundColor.rgb + resultColor.rgb, 1.0); \n\
       } \n\
       \n';
 
