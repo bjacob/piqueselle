@@ -248,16 +248,40 @@
         vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
         vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
         vec2 tileInPlane = floor(fractionalTileInPlane); \n\
-        vec2 atlasCoordForPlane = floor(256.0 * texture2D(' + name + 'Sampler, tileInPlane / planeSize).ra); \n\
-        vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
-        color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
-        blend(color, resultColor); \n\
-        if (resultColor.a == 0.0) { \n\
-          gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
-          return; \n\
+        vec2 rawAtlasCoordForPlane = texture2D(' + name + 'Sampler, tileInPlane / planeSize).ra; \n\
+        %IF_NON_EMPTY_TILE% \n\
+        { \n\
+          vec2 atlasCoordForPlane = floor(256.0 * rawAtlasCoordForPlane); \n\
+          vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
+          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
+          blend(color, resultColor); \n\
+          %OPAQUE_PIXELS_OPTIMIZATION% \n\
         } \n\
       } // ' + name + '\n\
     \n';
+
+    // FIXME - these flags should automatically be set to true or false by analyzing the input data
+    // (atlas and plane textures). 'true' is at worst slightly slower and generally much faster,
+    // so is the sane default.
+    var emptyTilesOptimization = true;
+    var opaquePixelsOptimization = true;
+
+    var ifNonEmptyTileCode = '';
+    if (emptyTilesOptimization) {
+      ifNonEmptyTileCode = 'if (rawAtlasCoordForPlane != vec2(0.0, 0.0))';
+    }
+
+    var opaquePixelsOptimizationCode = '';
+    if (opaquePixelsOptimization) {
+      opaquePixelsOptimizationCode =
+      'if (resultColor.a == 0.0) { \n\
+         gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+         return; \n\
+       }';
+    }
+
+    fragmentShaderMain = fragmentShaderMain.replace("%IF_NON_EMPTY_TILE%", ifNonEmptyTileCode);
+    fragmentShaderMain = fragmentShaderMain.replace("%OPAQUE_PIXELS_OPTIMIZATION%", opaquePixelsOptimizationCode);
 
     this.context = context;
     this.texture = texture;
