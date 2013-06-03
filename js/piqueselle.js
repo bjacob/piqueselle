@@ -197,6 +197,8 @@
     var map = options['map'];
     var format = options['format'] || 'LUMINANCE_ALPHA';
     var type = options['type'] || 'UNSIGNED_BYTE';
+    var horizontalWrapMode = options['horizontalWrapMode'] || 'CLAMP_TO_EDGE';
+    var verticalWrapMode = options['verticalWrapMode'] || 'CLAMP_TO_EDGE';
     var name = options['name'] || 'TilePlane' + (nextTilePlaneId++);
     var position = options['position'] || [0.0, 0.0, 0.0];
 
@@ -218,6 +220,8 @@
     }
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, horizontalWrapMode);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, verticalWrapMode);
 
     var fragmentShaderGlobals =
     '\n\
