@@ -13,10 +13,36 @@
     var gl = context.gl;
     var id = nextSceneId++;
 
+    var spriteRenderVertexShaderString =
+      '\n\
+      uniform vec2i sprites[1]; \n\
+      attribute vec2 vertexPos; \n\
+      varying vec2 texAtlasCoord; \n\
+      void main(void) { \n\
+        texAtlasCoord.x = float(sprites[0].x >> 24);
+        texAtlasCoord.y = float((sprites[0].x >> 16) & 0xff);
+        gl_Position = vertexPos;
+      } \n\
+      \n';
+
+    var spriteRenderFragmentShaderString =
+      '\n\
+      precision mediump float; \n\
+      uniform sampler2D atlasSampler; \n\
+      varying vec2 texAtlasCoord; \n\
+      \n\
+      %GLOBALS% \n\
+      \n\
+      void main(void) { \n\
+        gl_FragColor = texture2D(atlasSampler, texAtlasCoord);
+      } \n\
+      \n';
+
     var vertexShaderString =
       '\n\
       attribute vec2 vertexPosition; \n\
-        void main(void) { \n\
+      void main(void) { \n\
+        vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
         gl_Position = vec4(vertexPosition, 0.0, 1.0); \n\
       } \n\
       \n';
@@ -192,6 +218,14 @@
     ++ nextTextureUnit;
 
     return nextTextureUnit;
+  };
+
+  function SpritePlane(context, options) {
+    options = options || {};
+
+    var gl = context.gl;
+    var data = options['data'];
+
   };
 
   var nextTilePlaneId = 0;
