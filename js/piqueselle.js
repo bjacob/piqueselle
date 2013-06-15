@@ -33,10 +33,7 @@
         fragPos = offset - vertexPos; \n\
         float x = floor((vertexPos.x/inverseTileSize.x + sprites[0].z - cameraPos.x) / inverseZoom) / halfScreenSize.x; \n\
         float y = floor((vertexPos.y/inverseTileSize.y + sprites[0].w - cameraPos.y) / inverseZoom) / halfScreenSize.y; \n\
-        gl_Position = vec4(x, \n\
-                           y, \n\
-                           0.0, \n\
-                           1.0); \n\
+        gl_Position = vec4(x, y, 0.0, 1.0); \n\
       } \n\
       \n';
 
@@ -106,7 +103,7 @@
     rayFragmentShaderString = rayFragmentShaderString.replace("%MAIN%", rayFragmentShaderMain.join(''));
 
     // console.log('fragment shader: ' + rayFragmentShaderString);
-    console.log(spriteVertexShaderString);
+    // console.log(spriteVertexShaderString);
 
     var rayVertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(rayVertexShader, rayVertexShaderString);
@@ -324,6 +321,12 @@
     this.name = name;
     this.position = position;
     this.data = data;
+
+    var texture = gl.createTexture();
+    var pixels = new Uint16Array(context.canvas.width * context.canvas.height * 2);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl['RGBA'],
+      context.canvas.width, context.canvas.height, 0, gl['RGBA'], gl['UNSIGNED_SHORT_4_4_4_4'], pixels);
   };
 
   function TilePlane(context, options) {
