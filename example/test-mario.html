@@ -97,6 +97,11 @@ function start() {
      }
   }
 
+  var sprites = [11, 0, 0, 0];
+
+  var spritePlane = new context.SpritePlane({
+    data: new Float32Array(sprites)
+  });
 
   var mainPlane = new context.TilePlane({
     map: {
@@ -130,9 +135,10 @@ function start() {
 
   var scene = new context.Scene(atlas,
     [
-      foregroundPlane,
-      mainPlane,
-      backgroundPlane
+      spritePlane,
+      //foregroundPlane,
+      //mainPlane,
+      //backgroundPlane
     ],
     { backgroundColor: [0.5, 0.8, 1.0] }
   );
@@ -145,9 +151,12 @@ function start() {
     timestamp = new Date().getTime();
     angle = timestamp / 2000.0;
 
-    camera.x = 250 * Math.cos(angle);
-    camera.y = 10 + 10 * Math.sin(angle);
-    camera.zoom = 4 + Math.sin(angle);
+    //camera.x = 250 * Math.cos(angle);
+    //camera.y = 10 + 10 * Math.sin(angle);
+    //camera.zoom = 4 + Math.sin(angle);
+
+    spritePlane.data[2] = 30 * Math.sin(angle);
+    spritePlane.data[3] = 30 * Math.cos(angle);
 
     renderer.render(scene, camera);
     requestAnimationFrame(update);

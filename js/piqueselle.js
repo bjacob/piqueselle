@@ -13,41 +13,55 @@
     var gl = context.gl;
     var id = nextSceneId++;
 
-    var spriteRenderVertexShaderString =
+    var spriteVertexShaderString =
       '\n\
-      uniform vec2i sprites[1]; \n\
+      precision highp int; \n\
+      uniform vec4 sprites[1]; \n\
+      uniform vec3 cameraPos; \n\
+      uniform float inverseZoom; \n\
+      uniform vec2 halfScreenSize; \n\
       attribute vec2 vertexPos; \n\
       varying vec2 texAtlasCoord; \n\
-      void main(void) { \n\
-        texAtlasCoord.x = float(sprites[0].x >> 24);
-        texAtlasCoord.y = float((sprites[0].x >> 16) & 0xff);
-        gl_Position = vertexPos;
-      } \n\
-      \n';
-
-    var spriteRenderFragmentShaderString =
-      '\n\
-      precision mediump float; \n\
-      uniform sampler2D atlasSampler; \n\
-      varying vec2 texAtlasCoord; \n\
+      varying vec2 fragPos; \n\
       \n\
       %GLOBALS% \n\
       \n\
       void main(void) { \n\
-        gl_FragColor = texture2D(atlasSampler, texAtlasCoord);
+        texAtlasCoord.x = float(sprites[0].x); \n\
+        texAtlasCoord.y = float(sprites[0].y); \n\
+        vec2 offset = 1.0 - inverseZoom * inverseTileSize; \n\
+        fragPos = offset - vertexPos; \n\
+        float x = floor((vertexPos.x/inverseTileSize.x + sprites[0].z - cameraPos.x) / inverseZoom) / halfScreenSize.x; \n\
+        float y = floor((vertexPos.y/inverseTileSize.y + sprites[0].w - cameraPos.y) / inverseZoom) / halfScreenSize.y; \n\
+        gl_Position = vec4(x, \n\
+                           y, \n\
+                           0.0, \n\
+                           1.0); \n\
       } \n\
       \n';
 
-    var vertexShaderString =
+    var spriteFragmentShaderString =
+      '\n\
+      precision mediump float; \n\
+      varying vec2 texAtlasCoord; \n\
+      varying vec2 fragPos; \n\
+      \n\
+      %GLOBALS% \n\
+      \n\
+      void main(void) { \n\
+        gl_FragColor = texture2D(atlasSampler, (texAtlasCoord + fragPos)/atlasSize); \n\
+      } \n\
+      \n';
+
+    var rayVertexShaderString =
       '\n\
       attribute vec2 vertexPosition; \n\
       void main(void) { \n\
-        vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
         gl_Position = vec4(vertexPosition, 0.0, 1.0); \n\
       } \n\
       \n';
 
-    var fragmentShaderString =
+    var rayFragmentShaderString =
       '\n\
       precision mediump float; \n\
       void blend(vec4 src, inout vec4 dst) { \n\
@@ -74,47 +88,80 @@
       } \n\
       \n';
 
-    var fragmentShaderGlobals = [atlas.fragmentShaderGlobals];
-    var fragmentShaderMain = [];
+    var spriteFragmentShaderGlobals = [atlas.fragmentShaderGlobals];
+    var spriteVertexShaderGlobals = [atlas.fragmentShaderGlobals];
+
+    var rayFragmentShaderGlobals = [atlas.fragmentShaderGlobals];
+    var rayFragmentShaderMain = [];
 
     planes.forEach(function(plane) {
-      fragmentShaderGlobals.push(plane.fragmentShaderGlobals);
-      fragmentShaderMain.push(plane.fragmentShaderMain);
+      rayFragmentShaderGlobals.push(plane.fragmentShaderGlobals);
+      rayFragmentShaderMain.push(plane.fragmentShaderMain);
     });
 
-    fragmentShaderString = fragmentShaderString.replace("%GLOBALS%", fragmentShaderGlobals.join(''));
-    fragmentShaderString = fragmentShaderString.replace("%MAIN%", fragmentShaderMain.join(''));
+    spriteFragmentShaderString = spriteFragmentShaderString.replace("%GLOBALS%", spriteFragmentShaderGlobals.join(''));
+    spriteVertexShaderString = spriteVertexShaderString.replace("%GLOBALS%", spriteVertexShaderGlobals.join(''));
 
-    // console.log('fragment shader: ' + fragmentShaderString);
+    rayFragmentShaderString = rayFragmentShaderString.replace("%GLOBALS%", rayFragmentShaderGlobals.join(''));
+    rayFragmentShaderString = rayFragmentShaderString.replace("%MAIN%", rayFragmentShaderMain.join(''));
 
-    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, vertexShaderString);
-    gl.compileShader(vertexShader);
+    // console.log('fragment shader: ' + rayFragmentShaderString);
+    console.log(spriteVertexShaderString);
 
-    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, fragmentShaderString);
-    gl.compileShader(fragmentShader);
+    var rayVertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(rayVertexShader, rayVertexShaderString);
+    gl.compileShader(rayVertexShader);
 
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
+    var rayFragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(rayFragmentShader, rayFragmentShaderString);
+    gl.compileShader(rayFragmentShader);
 
-    gl.bindAttribLocation(program, context.vertexPositionAttrLoc, "vertexPosition");
+    var rayProgram = gl.createProgram();
+    gl.attachShader(rayProgram, rayVertexShader);
+    gl.attachShader(rayProgram, rayFragmentShader);
 
-    gl.linkProgram(program);
+    gl.bindAttribLocation(rayProgram, context.vertexPositionAttrLoc, "vertexPosition");
+
+    gl.linkProgram(rayProgram);
+
+    var spriteVertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(spriteVertexShader, spriteVertexShaderString);
+    gl.compileShader(spriteVertexShader);
+
+    var spriteFragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(spriteFragmentShader, spriteFragmentShaderString);
+    gl.compileShader(spriteFragmentShader);
+
+    var spriteProgram = gl.createProgram();
+    gl.attachShader(spriteProgram, spriteVertexShader);
+    gl.attachShader(spriteProgram, spriteFragmentShader);
+
+    gl.bindAttribLocation(spriteProgram, context.vertexPositionAttrLoc, "vertexPosition");
+
+    gl.linkProgram(spriteProgram);
 
     // Shader uniform locations
-    var uniformLocations = {
-      'cameraPos': gl.getUniformLocation(program, "cameraPos"),
-      'inverseZoom': gl.getUniformLocation(program, "inverseZoom"),
-      'backgroundColor': gl.getUniformLocation(program, "backgroundColor"),
+    var rayProgramUniformLocations = {
+      'cameraPos': gl.getUniformLocation(rayProgram, "cameraPos"),
+      'inverseZoom': gl.getUniformLocation(rayProgram, "inverseZoom"),
+      'backgroundColor': gl.getUniformLocation(rayProgram, "backgroundColor"),
+    };
+
+    var spriteProgramUniformLocations = {
+      'sprites': gl.getUniformLocation(spriteProgram, "sprites"),
+      'cameraPos': gl.getUniformLocation(spriteProgram, "cameraPos"),
+      'inverseZoom': gl.getUniformLocation(spriteProgram, "inverseZoom"),
+      'backgroundColor': gl.getUniformLocation(spriteProgram, "backgroundColor"),
+      'halfScreenSize': gl.getUniformLocation(spriteProgram, "halfScreenSize"),
     };
 
     this.atlas = atlas;
     this.planes = planes;
-    this.program = program;
+    this.rayProgram = rayProgram;
+    this.spriteProgram = spriteProgram;
     this.id = id;
-    this.uniformLocations = uniformLocations;
+    this.rayProgramUniformLocations = rayProgramUniformLocations;
+    this.spriteProgramUniformLocations = spriteProgramUniformLocations;
     this.backgroundColor = options.backgroundColor;
   };
 
@@ -127,41 +174,83 @@
   function Renderer(context) {
     var gl = context.gl;
 
-    var vertexPositionBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, vertexPositionBuffer);
-    var vertices = [ -1,  -1,
-                     -1,   1,
-                      1,  -1,
-                      1,   1 ];
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-    gl.vertexAttribPointer(context.vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
+    var rayVertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, rayVertexPositionBuffer);
+    var rayVertices = [ -1,  -1,
+                        -1,   1,
+                         1,  -1,
+                         1,   1 ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(rayVertices), gl.STATIC_DRAW);
+
+    var spriteVertexPositionBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, spriteVertexPositionBuffer);
+    var spriteVertices = [ 0,  0,
+                           0,  1,
+                           1,  0,
+                           1,  1 ];
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(spriteVertices), gl.STATIC_DRAW);
 
     this.context = context;
+    this.rayVertexPositionBuffer = rayVertexPositionBuffer;
+    this.spriteVertexPositionBuffer = spriteVertexPositionBuffer;
   };
   Renderer.prototype.render = function render(scene, camera) {
+    var renderer = this;
     var gl = this.context.gl;
-    var program = scene.program;
-    var nextTextureUnit = 0;
 
-    gl.useProgram(program);
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+    function rayRenderPass() {
+      var program = scene.rayProgram;
+      var nextTextureUnit = 0;
 
-    // Set camera position
-    gl.uniform3f(scene.uniformLocations['cameraPos'], camera.x, camera.y, 0);
-    gl.uniform1f(scene.uniformLocations['inverseZoom'], 1/camera.zoom);
-    gl.uniform3fv(scene.uniformLocations['backgroundColor'], scene.backgroundColor);
+      gl.useProgram(program);
 
-    // Bind to texture units
-    nextTextureUnit = scene.atlas.bindTextures(program, nextTextureUnit);
+      // Set camera position
+      gl.uniform3f(scene.rayProgramUniformLocations['cameraPos'], camera.x, camera.y, 0);
+      gl.uniform1f(scene.rayProgramUniformLocations['inverseZoom'], 1/camera.zoom);
+      gl.uniform3fv(scene.rayProgramUniformLocations['backgroundColor'], scene.backgroundColor);
 
-    var textureLocations;
-    var planes = scene.planes;
-    planes.forEach(function(plane) {
-      nextTextureUnit = plane.bindTextures(program, nextTextureUnit);
-      plane.prepare(program);
-    });
+      // Bind to texture units
+      nextTextureUnit = scene.atlas.bindTextures(program, nextTextureUnit);
 
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      var planes = scene.planes;
+      planes.forEach(function(plane) {
+        nextTextureUnit = plane.bindTextures(program, nextTextureUnit);
+        plane.prepare(program);
+      });
+
+      gl.bindBuffer(gl.ARRAY_BUFFER, renderer.rayVertexPositionBuffer);
+      gl.vertexAttribPointer(renderer.context.vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
+
+    function spriteRenderPass() {
+      var program = scene.spriteProgram;
+      var nextTextureUnit = 0;
+
+      gl.useProgram(program);
+
+      // Set camera position
+      gl.uniform3f(scene.spriteProgramUniformLocations['cameraPos'], camera.x, camera.y, 0);
+      gl.uniform1f(scene.spriteProgramUniformLocations['inverseZoom'], 1/camera.zoom);
+      gl.uniform3fv(scene.spriteProgramUniformLocations['backgroundColor'], scene.backgroundColor);
+      gl.uniform2f(scene.spriteProgramUniformLocations['halfScreenSize'], renderer.context.canvas.width/2, renderer.context.canvas.height/2);
+
+      // Bind to texture units
+      nextTextureUnit = scene.atlas.bindTextures(program, nextTextureUnit);
+
+      var planes = scene.planes;
+      planes.forEach(function(plane) {
+        if(plane instanceof SpritePlane) {
+          gl.uniform4fv(scene.spriteProgramUniformLocations['sprites'], plane.data);
+          gl.bindBuffer(gl.ARRAY_BUFFER, renderer.spriteVertexPositionBuffer);
+          gl.vertexAttribPointer(renderer.context.vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+      })
+    };
+
+    // rayRenderPass();
+    spriteRenderPass();
   };
 
   function TextureAtlas(context, options) {
@@ -220,15 +309,23 @@
     return nextTextureUnit;
   };
 
+  var nextPlaneId = 0;
+
   function SpritePlane(context, options) {
     options = options || {};
 
     var gl = context.gl;
     var data = options['data'];
 
+    var name = options['name'] || 'SpritePlane' + (nextPlaneId++);
+    var position = options['position'] || [0.0, 0.0, 0.0];
+
+    this.context = context;
+    this.name = name;
+    this.position = position;
+    this.data = data;
   };
 
-  var nextTilePlaneId = 0;
   function TilePlane(context, options) {
     options = options || {};
 
@@ -242,7 +339,7 @@
     var type = options['type'] || 'UNSIGNED_BYTE';
     var horizontalWrapMode = options['horizontalWrapMode'] || 'CLAMP_TO_EDGE';
     var verticalWrapMode = options['verticalWrapMode'] || 'CLAMP_TO_EDGE';
-    var name = options['name'] || 'TilePlane' + (nextTilePlaneId++);
+    var name = options['name'] || 'TilePlane' + (nextPlaneId++);
     var position = options['position'] || [0.0, 0.0, 0.0];
 
     var texture = gl.createTexture();
@@ -357,6 +454,7 @@
     this.Scene = Scene.bind(undefined, this);
     this.TextureAtlas = TextureAtlas.bind(undefined, this);
     this.TilePlane = TilePlane.bind(undefined, this);
+    this.SpritePlane = SpritePlane.bind(undefined, this);
     this.Camera = Camera.bind(undefined, this);
     this.vertexPositionAttrLoc = vertexPositionAttrLoc;
   };
