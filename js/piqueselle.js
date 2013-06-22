@@ -102,7 +102,7 @@
     rayFragmentShaderString = rayFragmentShaderString.replace("%GLOBALS%", rayFragmentShaderGlobals.join(''));
     rayFragmentShaderString = rayFragmentShaderString.replace("%MAIN%", rayFragmentShaderMain.join(''));
 
-    // console.log('fragment shader: ' + rayFragmentShaderString);
+    console.log('ray fragment shader: ' + rayFragmentShaderString);
     // console.log(spriteVertexShaderString);
 
     var rayVertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -148,7 +148,6 @@
       'sprites': gl.getUniformLocation(spriteProgram, "sprites"),
       'cameraPos': gl.getUniformLocation(spriteProgram, "cameraPos"),
       'inverseZoom': gl.getUniformLocation(spriteProgram, "inverseZoom"),
-      'backgroundColor': gl.getUniformLocation(spriteProgram, "backgroundColor"),
       'halfScreenSize': gl.getUniformLocation(spriteProgram, "halfScreenSize"),
     };
 
@@ -241,13 +240,20 @@
           gl.uniform4fv(scene.spriteProgramUniformLocations['sprites'], plane.data);
           gl.bindBuffer(gl.ARRAY_BUFFER, renderer.spriteVertexPositionBuffer);
           gl.vertexAttribPointer(renderer.context.vertexPositionAttrLoc, 2, gl.FLOAT, false, 0, 0);
+
+          // Render to sprite plane texture
+          gl.bindFramebuffer(gl.FRAMEBUFFER, plane.framebuffer);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         }
-      })
+      });
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     };
 
-    // rayRenderPass();
     spriteRenderPass();
+    rayRenderPass();
   };
 
   function TextureAtlas(context, options) {
@@ -316,17 +322,64 @@
 
     var name = options['name'] || 'SpritePlane' + (nextPlaneId++);
     var position = options['position'] || [0.0, 0.0, 0.0];
-
-    this.context = context;
-    this.name = name;
-    this.position = position;
-    this.data = data;
+    var horizontalWrapMode = options['horizontalWrapMode'] || 'CLAMP_TO_EDGE';
+    var verticalWrapMode = options['verticalWrapMode'] || 'CLAMP_TO_EDGE';
 
     var texture = gl.createTexture();
     var pixels = new Uint16Array(context.canvas.width * context.canvas.height * 2);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl['RGBA'],
       context.canvas.width, context.canvas.height, 0, gl['RGBA'], gl['UNSIGNED_SHORT_4_4_4_4'], pixels);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl[horizontalWrapMode]);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl[verticalWrapMode]);
+
+    var framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    var fragmentShaderGlobals =
+    '\n\
+      uniform sampler2D ' + name + 'Sampler; \n\
+      uniform vec3 ' + name + 'Pos; \n\
+    \n';
+
+    var fragmentShaderMain =
+    '\n\
+      { // ' + name + '\n\
+        var color = texture2D(' + name + 'Sampler, gl_FragCoord.xy); \n\
+        blend(color, resultColor); \n\
+        if (resultColor.a == 0.0) { \n\
+          gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
+          return; \n\
+        } \n\
+      } // ' + name + '\n\
+    \n';
+
+    this.context = context;
+    this.name = name;
+    this.position = position;
+    this.data = data;
+    this.texture = texture;
+    this.framebuffer = framebuffer;
+    this.fragmentShaderGlobals = fragmentShaderGlobals;
+    this.fragmentShaderMain = fragmentShaderMain;
+  };
+  SpritePlane.prototype.bindTextures = function bindTextures(program, nextTextureUnit) {
+    var gl = this.context.gl;
+
+    gl.activeTexture(gl.TEXTURE0 + nextTextureUnit);
+    gl.bindTexture(gl.TEXTURE_2D, this.texture);
+    gl.uniform1i(gl.getUniformLocation(program, this.name + 'Sampler'), nextTextureUnit);
+
+    return ++ nextTextureUnit;
+  };
+  SpritePlane.prototype.prepare = function prepare(program) {
+    var gl = this.context.gl;
+
+    gl.uniform3f(gl.getUniformLocation(program, this.name + 'Pos'), this.position[0], this.position[1], this.position[2]);
   };
 
   function TilePlane(context, options) {

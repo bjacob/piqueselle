@@ -100,7 +100,8 @@ function start() {
   var sprites = [11, 0, 0, 0];
 
   var spritePlane = new context.SpritePlane({
-    data: new Float32Array(sprites)
+    data: new Float32Array(sprites),
+    position: [0, 0, 0]
   });
 
   var mainPlane = new context.TilePlane({
@@ -138,7 +139,7 @@ function start() {
       spritePlane,
       //foregroundPlane,
       //mainPlane,
-      //backgroundPlane
+      backgroundPlane
     ],
     { backgroundColor: [0.5, 0.8, 1.0] }
   );
