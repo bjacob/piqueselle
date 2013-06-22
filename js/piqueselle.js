@@ -103,7 +103,7 @@
     rayFragmentShaderString = rayFragmentShaderString.replace("%MAIN%", rayFragmentShaderMain.join(''));
 
     console.log('ray fragment shader: ' + rayFragmentShaderString);
-    // console.log(spriteVertexShaderString);
+    //console.log('sprite fragment shader: ' + spriteFragmentShaderString);
 
     var rayVertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(rayVertexShader, rayVertexShaderString);
@@ -228,7 +228,7 @@
       // Set camera position
       gl.uniform3f(scene.spriteProgramUniformLocations['cameraPos'], camera.x, camera.y, 0);
       gl.uniform1f(scene.spriteProgramUniformLocations['inverseZoom'], 1/camera.zoom);
-      gl.uniform3fv(scene.spriteProgramUniformLocations['backgroundColor'], scene.backgroundColor);
+      // gl.uniform3fv(scene.spriteProgramUniformLocations['backgroundColor'], scene.backgroundColor);
       gl.uniform2f(scene.spriteProgramUniformLocations['halfScreenSize'], renderer.context.canvas.width/2, renderer.context.canvas.height/2);
 
       // Bind to texture units
@@ -349,7 +349,7 @@
     var fragmentShaderMain =
     '\n\
       { // ' + name + '\n\
-        var color = texture2D(' + name + 'Sampler, gl_FragCoord.xy); \n\
+        color = texture2D(' + name + 'Sampler, gl_FragCoord.xy/256.0); \n\
         blend(color, resultColor); \n\
         if (resultColor.a == 0.0) { \n\
           gl_FragColor = vec4(resultColor.rgb, 1.0); \n\
@@ -357,6 +357,16 @@
         } \n\
       } // ' + name + '\n\
     \n';
+/*
+    var fragmentShaderMain =
+    '\n\
+      { // ' + name + '\n\
+        vec2 fragPos = gl_FragCoord.xy; \n\
+        gl_FragColor = vec4(fragPos.x/256.0, fragPos.y/256.0, 0.0, 0.0); \n\
+        return; \n\
+      } // ' + name + '\n\
+    \n';
+*/
 
     this.context = context;
     this.name = name;
