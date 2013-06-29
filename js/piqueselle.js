@@ -451,7 +451,7 @@
         vec2 frag_pos_in_tiles = (frag_coord_in_bp + projected_camera_pos_in_bp - plane_pos_in_bp) * bp_to_tiles; \n\
         vec2 tile = floor(frag_pos_in_tiles); \n\
         vec2 atlas_coord_in_elements = floor(256.0 * texture2D(' + name + 'Sampler, tile / plane_size_in_tiles).ra); \n\
-        %IF_NON_EMPTY_TILE%
+        %IF_NON_EMPTY_TILE% \n\
         { \n\
           vec2 fractional_part_of_frag_pos_in_tiles = frag_pos_in_tiles - tile; \n\
           color = texture2D(atlasSampler, (atlas_coord_in_elements + vec2(fractional_part_of_frag_pos_in_tiles.x, 1.0 - fractional_part_of_frag_pos_in_tiles.y)) / atlasSize); \n\
