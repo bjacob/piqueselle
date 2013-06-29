@@ -29,9 +29,8 @@
       void main(void) { \n\
         texAtlasCoord.x = float(sprites[0].x); \n\
         texAtlasCoord.y = float(sprites[0].y); \n\
-        vec2 offset = 1.0 - inverseZoom * inverseTileSize; \n\
-        fragPos = offset - vertexPos; \n\
-        float x = floor((vertexPos.x/inverseTileSize.x + sprites[0].z - cameraPos.x) / inverseZoom) / halfScreenSize.x; \n\
+        fragPos = clamp((1.0 - inverseZoom * inverseTileSize) - vertexPos, 0.0, 1.0); \n\
+        float x = floor((vertexPos.x/inverseTileSize.x + sprites[0].z - cameraPos.x) / inverseZoom) / halfScreenSize.y; \n\
         float y = floor((vertexPos.y/inverseTileSize.y + sprites[0].w - cameraPos.y) / inverseZoom) / halfScreenSize.y; \n\
         gl_Position = vec4(x, y, 0.0, 1.0); \n\
       } \n\
@@ -229,7 +228,7 @@
       gl.uniform3f(scene.spriteProgramUniformLocations['cameraPos'], camera.x, camera.y, 0);
       gl.uniform1f(scene.spriteProgramUniformLocations['inverseZoom'], 1/camera.zoom);
       // gl.uniform3fv(scene.spriteProgramUniformLocations['backgroundColor'], scene.backgroundColor);
-      gl.uniform2f(scene.spriteProgramUniformLocations['halfScreenSize'], renderer.context.canvas.width/2, renderer.context.canvas.height/2);
+      gl.uniform2f(scene.spriteProgramUniformLocations['halfScreenSize'], gl.drawingBufferWidth/2, gl.drawingBufferHeight/2);
 
       // Bind to texture units
       nextTextureUnit = scene.atlas.bindTextures(program, nextTextureUnit);
@@ -326,10 +325,9 @@
     var verticalWrapMode = options['verticalWrapMode'] || 'CLAMP_TO_EDGE';
 
     var texture = gl.createTexture();
-    var pixels = new Uint16Array(context.canvas.width * context.canvas.height * 2);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl['RGBA'],
-      context.canvas.width, context.canvas.height, 0, gl['RGBA'], gl['UNSIGNED_SHORT_4_4_4_4'], pixels);
+      gl.drawingBufferWidth, gl.drawingBufferHeight, 0, gl['RGBA'], gl['UNSIGNED_SHORT_4_4_4_4'], null);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl[horizontalWrapMode]);
