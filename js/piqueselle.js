@@ -446,7 +446,7 @@
         const vec2 plane_size_in_tiles = vec2(' + map['width'] + ', ' + map['height'] + '); \n\
         vec2 plane_pos_in_bp = ' + name + 'Pos; \n\
         float plane_depth = ' + name + 'Depth; \n\
-        vec2 projected_camera_pos_in_bp = camera_pos_at_unit_depth_in_bp / -plane_depth; \n\
+        vec2 projected_camera_pos_in_bp = camera_pos_at_unit_depth_in_bp / plane_depth; \n\
         vec2 frag_coord_in_bp = gl_FragCoord.xy * sp_to_bp; \n\
         vec2 frag_pos_in_tiles = (frag_coord_in_bp + projected_camera_pos_in_bp - plane_pos_in_bp) * bp_to_tiles; \n\
         vec2 tile = floor(frag_pos_in_tiles); \n\
