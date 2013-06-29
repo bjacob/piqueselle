@@ -66,8 +66,8 @@
         dst.a = (1.0 - src.a) * dst.a; \n\
       } \n\
       \n\
-      uniform float inverseZoom; \n\
-      uniform vec3 cameraPos; \n\
+      uniform float sp_to_bp; \n\
+      uniform vec2 camera_pos_at_unit_depth_in_bp; \n\
       uniform vec3 backgroundColor; \n\
       \n\
       %GLOBALS% \n\
@@ -101,7 +101,11 @@
     rayFragmentShaderString = rayFragmentShaderString.replace("%GLOBALS%", rayFragmentShaderGlobals.join(''));
     rayFragmentShaderString = rayFragmentShaderString.replace("%MAIN%", rayFragmentShaderMain.join(''));
 
-    console.log('ray fragment shader: ' + rayFragmentShaderString);
+    var counter = 0;
+    rayFragmentShaderString.split('\n').forEach(function(line) {
+      //console.log(++ counter, line);
+    })
+    // console.log('ray fragment shader: ' + rayFragmentShaderString.split('\n'));
     //console.log('sprite fragment shader: ' + spriteFragmentShaderString);
 
     var rayVertexShader = gl.createShader(gl.VERTEX_SHADER);
@@ -119,7 +123,7 @@
     gl.bindAttribLocation(rayProgram, context.vertexPositionAttrLoc, "vertexPosition");
 
     gl.linkProgram(rayProgram);
-
+/*
     var spriteVertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(spriteVertexShader, spriteVertexShaderString);
     gl.compileShader(spriteVertexShader);
@@ -135,28 +139,28 @@
     gl.bindAttribLocation(spriteProgram, context.vertexPositionAttrLoc, "vertexPosition");
 
     gl.linkProgram(spriteProgram);
-
+*/
     // Shader uniform locations
     var rayProgramUniformLocations = {
-      'cameraPos': gl.getUniformLocation(rayProgram, "cameraPos"),
-      'inverseZoom': gl.getUniformLocation(rayProgram, "inverseZoom"),
+      'camera_pos_at_unit_depth_in_bp': gl.getUniformLocation(rayProgram, "camera_pos_at_unit_depth_in_bp"),
       'backgroundColor': gl.getUniformLocation(rayProgram, "backgroundColor"),
+      'sp_to_bp': gl.getUniformLocation(rayProgram, "sp_to_bp"),
     };
-
+/*
     var spriteProgramUniformLocations = {
       'sprites': gl.getUniformLocation(spriteProgram, "sprites"),
       'cameraPos': gl.getUniformLocation(spriteProgram, "cameraPos"),
       'inverseZoom': gl.getUniformLocation(spriteProgram, "inverseZoom"),
       'halfScreenSize': gl.getUniformLocation(spriteProgram, "halfScreenSize"),
     };
-
+*/
     this.atlas = atlas;
     this.planes = planes;
     this.rayProgram = rayProgram;
-    this.spriteProgram = spriteProgram;
+    // this.spriteProgram = spriteProgram;
     this.id = id;
     this.rayProgramUniformLocations = rayProgramUniformLocations;
-    this.spriteProgramUniformLocations = spriteProgramUniformLocations;
+    // this.spriteProgramUniformLocations = spriteProgramUniformLocations;
     this.backgroundColor = options.backgroundColor;
   };
 
@@ -200,8 +204,8 @@
       gl.useProgram(program);
 
       // Set camera position
-      gl.uniform3f(scene.rayProgramUniformLocations['cameraPos'], camera.x, camera.y, 0);
-      gl.uniform1f(scene.rayProgramUniformLocations['inverseZoom'], 1/camera.zoom);
+      gl.uniform2f(scene.rayProgramUniformLocations['camera_pos_at_unit_depth_in_bp'], camera.x, camera.y, 0);
+      gl.uniform1f(scene.rayProgramUniformLocations['sp_to_bp'], 1/camera.zoom);
       gl.uniform3fv(scene.rayProgramUniformLocations['backgroundColor'], scene.backgroundColor);
 
       // Bind to texture units
@@ -227,7 +231,6 @@
       // Set camera position
       gl.uniform3f(scene.spriteProgramUniformLocations['cameraPos'], camera.x, camera.y, 0);
       gl.uniform1f(scene.spriteProgramUniformLocations['inverseZoom'], 1/camera.zoom);
-      // gl.uniform3fv(scene.spriteProgramUniformLocations['backgroundColor'], scene.backgroundColor);
       gl.uniform2f(scene.spriteProgramUniformLocations['halfScreenSize'], gl.drawingBufferWidth/2, gl.drawingBufferHeight/2);
 
       // Bind to texture units
@@ -251,7 +254,7 @@
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     };
 
-    spriteRenderPass();
+    // spriteRenderPass();
     rayRenderPass();
   };
 
@@ -292,7 +295,7 @@
     '\n\
       uniform sampler2D atlasSampler; \n\
       const vec2 atlasSize = vec2(' + atlas['width']/tileSize + ', ' + atlas['height']/tileSize + '); \n\
-      const vec2 inverseTileSize = vec2(' + 1/tileSize + ', ' + 1/tileSize + '); \n\
+      const vec2 bp_to_tiles = vec2(' + 1/tileSize + ', ' + 1/tileSize + '); \n\
     \n';
 
     this.context = context;
@@ -404,7 +407,8 @@
     var horizontalWrapMode = options['horizontalWrapMode'] || 'CLAMP_TO_EDGE';
     var verticalWrapMode = options['verticalWrapMode'] || 'CLAMP_TO_EDGE';
     var name = options['name'] || 'TilePlane' + (nextPlaneId++);
-    var position = options['position'] || [0.0, 0.0, 0.0];
+    var position = options['position'] || [0.0, 0.0];
+    var depth = options['depth'] || -1.0;
 
     var texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -430,7 +434,8 @@
     var fragmentShaderGlobals =
     '\n\
       uniform sampler2D ' + name + 'Sampler; \n\
-      uniform vec3 ' + name + 'Pos; \n\
+      uniform vec2 ' + name + 'Pos; \n\
+      uniform float ' + name + 'Depth; \n\
     \n';
 
 
@@ -438,17 +443,17 @@
     var fragmentShaderMain =
     '\n\
       { // ' + name + '\n\
-        const vec2 planeSize = vec2(' + map['width'] + ', ' + map['height'] + '); \n\
-        vec3 planePos = ' + name + 'Pos; \n\
-        vec2 fragPos = gl_FragCoord.xy * inverseZoom + cameraPos.xy / (cameraPos.z - planePos.z); \n\
-        vec2 fractionalTileInPlane = (fragPos - planePos.xy) * inverseTileSize; \n\
-        vec2 tileInPlane = floor(fractionalTileInPlane); \n\
-        vec2 rawAtlasCoordForPlane = texture2D(' + name + 'Sampler, tileInPlane / planeSize).ra; \n\
-        %IF_NON_EMPTY_TILE% \n\
+        const vec2 plane_size_in_tiles = vec2(' + map['width'] + ', ' + map['height'] + '); \n\
+        vec2 plane_pos_in_bp = ' + name + 'Pos; \n\
+        float plane_depth = ' + name + 'Depth; \n\
+        vec2 projected_camera_pos_in_bp = camera_pos_at_unit_depth_in_bp / -plane_depth; \n\
+        vec2 frag_coord_in_bp = gl_FragCoord.xy * sp_to_bp; \n\
+        vec2 frag_pos_in_tiles = (frag_coord_in_bp + projected_camera_pos_in_bp - plane_pos_in_bp) * bp_to_tiles; \n\
+        vec2 tile = floor(frag_pos_in_tiles); \n\
         { \n\
-          vec2 atlasCoordForPlane = floor(256.0 * rawAtlasCoordForPlane); \n\
-          vec2 texCoordInTile = fractionalTileInPlane - tileInPlane; \n\
-          color = texture2D(atlasSampler, (atlasCoordForPlane + vec2(texCoordInTile.x, 1.0 - texCoordInTile.y)) / atlasSize); \n\
+          vec2 atlas_coord_in_elements = floor(256.0 * texture2D(' + name + 'Sampler, tile / plane_size_in_tiles).ra); \n\
+          vec2 fractional_part_of_frag_pos_in_tiles = frag_pos_in_tiles - tile; \n\
+          color = texture2D(atlasSampler, (atlas_coord_in_elements + vec2(fractional_part_of_frag_pos_in_tiles.x, 1.0 - fractional_part_of_frag_pos_in_tiles.y)) / atlasSize); \n\
           blend(color, resultColor); \n\
           %OPAQUE_PIXELS_OPTIMIZATION% \n\
         } \n\
@@ -475,13 +480,14 @@
        }';
     }
 
-    fragmentShaderMain = fragmentShaderMain.replace("%IF_NON_EMPTY_TILE%", ifNonEmptyTileCode);
+    // fragmentShaderMain = fragmentShaderMain.replace("%IF_NON_EMPTY_TILE%", ifNonEmptyTileCode);
     fragmentShaderMain = fragmentShaderMain.replace("%OPAQUE_PIXELS_OPTIMIZATION%", opaquePixelsOptimizationCode);
 
     this.context = context;
     this.texture = texture;
     this.name = name;
     this.position = position;
+    this.depth = depth;
     this.fragmentShaderGlobals = fragmentShaderGlobals;
     this.fragmentShaderMain = fragmentShaderMain;
   };
@@ -497,7 +503,8 @@
   TilePlane.prototype.prepare = function prepare(program) {
     var gl = this.context.gl;
 
-    gl.uniform3f(gl.getUniformLocation(program, this.name + 'Pos'), this.position[0], this.position[1], this.position[2]);
+    gl.uniform2f(gl.getUniformLocation(program, this.name + 'Pos'), this.position[0], this.position[1]);
+    gl.uniform1f(gl.getUniformLocation(program, this.name + 'Depth'), this.depth);
   };
 
   function Context(canvasElement) {
