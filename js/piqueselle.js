@@ -101,12 +101,11 @@
     rayFragmentShaderString = rayFragmentShaderString.replace("%GLOBALS%", rayFragmentShaderGlobals.join(''));
     rayFragmentShaderString = rayFragmentShaderString.replace("%MAIN%", rayFragmentShaderMain.join(''));
 
+    var printString = rayFragmentShaderString;
     var counter = 0;
-    rayFragmentShaderString.split('\n').forEach(function(line) {
-      //console.log(++ counter, line);
+    printString.split('\n').forEach(function(line) {
+      // console.log(++ counter, line);
     })
-    // console.log('ray fragment shader: ' + rayFragmentShaderString.split('\n'));
-    //console.log('sprite fragment shader: ' + spriteFragmentShaderString);
 
     var rayVertexShader = gl.createShader(gl.VERTEX_SHADER);
     gl.shaderSource(rayVertexShader, rayVertexShaderString);
@@ -149,9 +148,9 @@
 /*
     var spriteProgramUniformLocations = {
       'sprites': gl.getUniformLocation(spriteProgram, "sprites"),
-      'cameraPos': gl.getUniformLocation(spriteProgram, "cameraPos"),
-      'inverseZoom': gl.getUniformLocation(spriteProgram, "inverseZoom"),
-      'halfScreenSize': gl.getUniformLocation(spriteProgram, "halfScreenSize"),
+      'camera_pos_at_unit_depth_in_bp': gl.getUniformLocation(spriteProgram, "camera_pos_at_unit_depth_in_bp"),
+      'sp_to_bp': gl.getUniformLocation(spriteProgram, "sp_to_bp"),
+      'screen_scale': gl.getUniformLocation(spriteProgram, "screen_scale"),
     };
 */
     this.atlas = atlas;
@@ -358,16 +357,6 @@
         } \n\
       } // ' + name + '\n\
     \n';
-/*
-    var fragmentShaderMain =
-    '\n\
-      { // ' + name + '\n\
-        vec2 fragPos = gl_FragCoord.xy; \n\
-        gl_FragColor = vec4(fragPos.x/256.0, fragPos.y/256.0, 0.0, 0.0); \n\
-        return; \n\
-      } // ' + name + '\n\
-    \n';
-*/
 
     this.context = context;
     this.name = name;
